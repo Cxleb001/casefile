@@ -1,0 +1,20 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Data: downloaded, generated and intermediate files
+data/raw/
+data/prepared/
+data/work/
+runs/
+
+# Ground truth stays off GitHub so nothing can leak it to the agent
+eval/labels.csv
+
+# Generated registration SQL may contain typed secrets
+register.sql

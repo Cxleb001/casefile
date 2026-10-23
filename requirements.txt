@@ -1,0 +1,18 @@
+# Casefile: Python 3.10+
+# Install into a virtual environment (see README "Setup"); nothing here is installed for you.
+
+# Data prep and the local development backend
+pandas>=2.2
+duckdb>=1.1
+pyarrow>=15
+faker>=25
+
+# Models (OpenAI-compatible client for NVIDIA's API and Meterless)
+openai>=1.40
+
+# Config
+python-dotenv>=1.0
+
+# Publishing the sources Zetaris federates over (Day 2)
+psycopg[binary]>=3.2
+boto3>=1.34
