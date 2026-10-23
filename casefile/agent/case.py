@@ -15,8 +15,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import networkx as nx
-
 from .fx import to_usd
 from .sqlutil import to_datetime, to_iso
 
@@ -156,12 +154,6 @@ class CaseState:
         if direction == "out":
             return [e for e in self.edges.values() if e.src == self.subject and not e.is_self]
         return [e for e in self.edges.values() if e.dst == self.subject and not e.is_self]
-
-    def graph(self) -> nx.MultiDiGraph:
-        g = nx.MultiDiGraph()
-        for edge in self.edges.values():
-            g.add_edge(edge.src, edge.dst, key=edge.tx_id, ts=edge.ts, usd=edge.usd, tx_id=edge.tx_id)
-        return g
 
     def all_query_ids(self) -> list[str]:
         seen: list[str] = []

@@ -52,6 +52,16 @@ def _norm_name(text: Any) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _token_sort_ratio(a: str, b: str) -> float:
+    """0-100 similarity of two names regardless of word order (stdlib, no extra dependency)."""
+    from difflib import SequenceMatcher
+
+    left, right = " ".join(sorted(a.split())), " ".join(sorted(b.split()))
+    if not left or not right:
+        return 0.0
+    return 100.0 * SequenceMatcher(None, left, right).ratio()
+
+
 def _date10(value: Any) -> str | None:
     iso = to_iso(value)
     return iso[:10] if iso else None
@@ -568,6 +578,13 @@ LIMIT {limit}
                 rec["birth_or_incorporation"] = _date10(rec.get("birth_or_incorporation"))
                 entries.append(rec)
             self._watchlist, self._watchlist_qid = entries, qid
+            # Word index: only names sharing a word (3+ letters) get the slower similarity check.
+            self._watchlist_index: dict[str, set[int]] = {}
+            for i, rec in enumerate(entries):
+                for norm in rec["_norms"]:
+                    for word in norm.split():
+                        if len(word) >= 3:
+                            self._watchlist_index.setdefault(word, set()).add(i)
         return self._watchlist, self._watchlist_qid  # type: ignore[return-value]
 
     def screen_watchlist(self, bank_id: Any = None, account: Any = None, include_counterparties: bool = True,
@@ -577,8 +594,6 @@ LIMIT {limit}
         Only Institution A's own customers can be screened by name; B's names
         are withheld by its governed view, which becomes a stated limitation.
         """
-        from rapidfuzz import fuzz
-
         bank, acct = self._subject(bank_id, account)
         k = key(bank, acct)
         targets = [k]
@@ -610,8 +625,11 @@ LIMIT {limit}
             norm = _norm_name(person["full_name"])
             if not norm:
                 continue
-            for entry in watchlist:
-                score = max((fuzz.token_sort_ratio(norm, n) for n in entry["_norms"]), default=0)
+            candidates: set[int] = set()
+            for word in norm.split():
+                candidates |= self._watchlist_index.get(word, set())
+            for entry in (watchlist[i] for i in sorted(candidates)):
+                score = max((_token_sort_ratio(norm, n) for n in entry["_norms"]), default=0)
                 if score < threshold:
                     continue
                 same_dob = bool(person["dob_or_incorporation"]) and person["dob_or_incorporation"] == entry["birth_or_incorporation"]
