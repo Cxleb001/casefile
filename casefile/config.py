@@ -15,8 +15,9 @@ from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
-PREPARED_DIR = DATA_DIR / "prepared"
-EVAL_DIR = PROJECT_ROOT / "eval"
+# Overridable so a second dataset (e.g. a tuning batch) can be evaluated without moving files.
+PREPARED_DIR = Path(os.environ.get("CASEFILE_PREPARED_DIR") or DATA_DIR / "prepared").resolve()
+EVAL_DIR = Path(os.environ.get("CASEFILE_EVAL_DIR") or PROJECT_ROOT / "eval").resolve()
 RUNS_DIR = PROJECT_ROOT / "runs"
 
 # Logical table keys -> the environment variable that can override the name

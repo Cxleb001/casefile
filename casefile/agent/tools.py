@@ -119,6 +119,11 @@ class Toolbox:
     def _subject(self, bank_id: Any, account: Any) -> tuple[int, str]:
         if account is None:
             return split_key(self.case.subject)
+        text = str(account).strip()
+        if ":" in text:  # written bank:account, the way the case record shows accounts
+            bank_text, acct_text = text.split(":", 1)
+            if bank_text.strip().isdigit():
+                return int(bank_text), acct_text.strip()
         if bank_id is None:
             located = self._locate(str(account))
             if located is None:

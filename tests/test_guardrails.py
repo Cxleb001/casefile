@@ -173,3 +173,37 @@ def test_verifier_shows_tool_summaries_before_raw_rows():
     store = _Store([["2022-09-01 05:40", 1.0]] * 60)
     text = evidence_text(_case("34 Institution B counterparties could not be screened."), store, "Q-0000000001")
     assert text.index("could not be screened") < text.index("first rows")
+
+
+def test_tools_accept_accounts_written_bank_colon_account(world):
+    from casefile.agent.case import CaseState
+    from casefile.agent.tools import Toolbox
+
+    case = CaseState("T", world["alert"])
+    obs = Toolbox(world["backend"], world["store"], world["settings"], case).call("get_transactions",
+                                                                                 {"account": "2:Y", "bank_id": 1})
+    assert not obs.error and "2:Y" in obs.summary
+
+
+class MistakenLLM(OpinionatedLLM):
+    """Makes one malformed tool call before finishing, like a fast model sometimes does."""
+
+    def __init__(self) -> None:
+        super().__init__("ESCALATE")
+        self.turns = 0
+
+    def chat_json(self, step, messages, **kwargs):
+        if step == "plan":
+            self.calls.append(step)
+            self.turns += 1
+            if self.turns == 1:
+                return {"thought": "Look.", "action": "get_transactions", "args": {"account": "not an id!"}}, _Result("p")
+            return {"thought": "Done.", "action": "finish", "args": {"leaning": "ESCALATE"}}, _Result("p")
+        return super().chat_json(step, messages, **kwargs)
+
+
+def test_planner_argument_mistakes_do_not_count_as_incomplete_data(world):
+    report = _run(world, MistakenLLM())["report"]
+    assert report["investigation"]["steps"][0]["error"]  # the mistake is visible in the trace
+    assert "data_errors" not in report and not report.get("needs_review")
+    assert not any("checks failed" in x for x in report["limitations"])

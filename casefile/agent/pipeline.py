@@ -51,7 +51,8 @@ def run_case(alert: dict[str, Any], *, backend, store, settings, llm=None, max_s
             on_event(event)
 
     emit({"type": "stage", "stage": "workup"})
-    standard_workup(toolbox, on_step=lambda obs: emit({"type": "observation", "observation": obs}))
+    workup = standard_workup(toolbox, on_step=lambda obs: emit({"type": "observation", "observation": obs}))
+    workup_steps = {obs.step for obs in workup}
 
     investigation: dict[str, Any] = {"steps": [], "leaning": None, "open_questions": []}
     if llm is not None:
@@ -70,7 +71,9 @@ def run_case(alert: dict[str, Any], *, backend, store, settings, llm=None, max_s
         report = apply_evidence_standard(report, case)
 
     # A decision built on failed data checks must never go out looking confident.
-    failed = [o for o in case.observations if o.error]
+    # Incomplete data means a standard check or a query failed. A follow-up the investigator asked with
+    # malformed arguments is its own mistake: it shows in the trace but leaves the data intact.
+    failed = [o for o in case.observations if o.error and (o.step in workup_steps or o.error.startswith("query "))]
     if failed:
         tools = ", ".join(sorted({o.tool for o in failed}))
         report["needs_review"] = True

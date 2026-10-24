@@ -93,6 +93,9 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--steps", type=int, default=8)
     parser.add_argument("--name", default="")
+    parser.add_argument("--skip-accounts-in", type=Path, default=None,
+                        help="skip alerts whose account also appears in this alerts.csv (keeps a tuning batch "
+                             "apart from the test alerts)")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -111,6 +114,12 @@ def main() -> int:
         llm = LLM(settings, on_call=store.record_llm_call)
 
     alerts = load_alerts()
+    if args.skip_accounts_in:
+        with open(args.skip_accounts_in, encoding="utf-8") as handle:
+            taken = {(row["bank_id"], row["account"]) for row in csv.DictReader(handle)}
+        before = len(alerts)
+        alerts = [a for a in alerts if (a["bank_id"], a["account"]) not in taken]
+        print(f"Skipping {before - len(alerts)} alert(s) whose account is also in {args.skip_accounts_in}")
     if args.limit:
         alerts = alerts[: args.limit]
     rows = []
