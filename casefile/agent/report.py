@@ -115,15 +115,19 @@ def rules_report(case: CaseState) -> dict[str, Any]:
     benign = [s for s in case.signals if s["assessment"] == "benign" and s["strength"] > 0]
     score = suspicion_score(case.signals)
     strong = any(s["strength"] >= 3 for s in suspicious) or sum(1 for s in suspicious if s["strength"] >= 2) >= 2
-    escalate = strong and score >= 3
+    # One strong signal or two medium ones, or many weaker ones that add up.
+    escalate = (strong and score >= 3) or score >= 6
     typology = "NONE"
-    for s in sorted(suspicious, key=lambda s: -s["strength"]):
+    # Most specific shape first when strengths tie: a ring or a collecting account says more than a fan.
+    specificity = {"cycle": 0, "convergence": 1, "one_off_transfers": 2, "interconnection": 3, "uniform_amounts": 4}
+    for s in sorted(suspicious, key=lambda s: (-s["strength"], specificity.get(s["name"], 9))):
         value = s.get("value") if isinstance(s.get("value"), dict) else {}
         typology = {
             "cycle": "CYCLE",
             "convergence": "SCATTER-GATHER" if value.get("shape") == "scatter-gather" else "GATHER-SCATTER",
             "uniform_amounts": "FAN-OUT" if value.get("direction") == "out" else "FAN-IN",
             "interconnection": "BIPARTITE",
+            "one_off_transfers": {"fan-out": "FAN-OUT", "fan-in": "FAN-IN"}.get(value.get("shape"), "GATHER-SCATTER"),
         }.get(s["name"], "NONE")
         if typology != "NONE":
             break

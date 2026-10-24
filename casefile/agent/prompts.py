@@ -47,7 +47,10 @@ are below. Your job now is to test competing explanations before anyone decides:
 
 Ask the questions that would most change the decision: check the specific accounts named in the signals,
 look at the exact transactions behind a ring or a convergence, check whether counterparties share an owner,
-check whether a "hub" explains the pattern. Do not repeat a call that already ran with the same arguments.
+check whether a "hub" explains the pattern. When the subject dealt with an account only once by transfer, check
+what that account did next (or just before): bit players in a stack or cycle look ordinary on their own, and the
+rest of the scheme is often in the other institution's ledger. Do not repeat a call that already ran with the
+same arguments.
 
 Tools:
 {tool_list()}

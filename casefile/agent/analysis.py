@@ -18,6 +18,12 @@ from typing import Any
 from .case import CaseState, Edge, fmt_usd
 
 LAUNDERING_FORMATS = {"ACH", "Wire", "Cash", "Bitcoin"}
+# Account-to-account transfer rails, as opposed to card or cheque purchases at merchants.
+TRANSFER_FORMATS = {"ACH", "Wire", "Bitcoin"}
+ONE_OFF_DAYS = 3
+ONE_OFF_MEDIUM = 4
+ONE_OFF_STRONG = 8
+ONE_OFF_BOTH = 4
 
 
 def _signal(name: str, finding: str, value: Any, assessment: str, strength: int, edges: list[Edge] | None = None,
@@ -308,6 +314,100 @@ def burst_signal(case: CaseState, subject: str) -> dict[str, Any] | None:
     )
 
 
+def _densest(edges: list[Edge], days: float) -> list[Edge]:
+    """The largest set of these edges that fits in one window of ``days``."""
+    edges = sorted(edges, key=lambda e: e.ts)
+    best: list[Edge] = []
+    for i, first in enumerate(edges):
+        window = [e for e in edges[i:] if e.ts <= first.ts + timedelta(days=days)]
+        if len(window) > len(best):
+            best = window
+    return best
+
+
+def one_off_transfer_signal(case: CaseState, subject: str) -> dict[str, Any] | None:
+    """Bank transfers to (or from) many different accounts that the subject deals with only once.
+
+    Ordinary customers pay the same people and merchants again and again; mule
+    networks move money in single transfers between accounts with no other
+    relationship (fan-out, fan-in, or both through one account: gather-scatter).
+    """
+    out_edges, in_edges = _neighbours(case, subject)
+    hub = hub_threshold(case, subject)
+
+    def one_offs(edges: list[Edge], side: str) -> list[Edge]:
+        by_party: dict[str, list[Edge]] = defaultdict(list)
+        for e in edges:
+            by_party[getattr(e, side)].append(e)
+        return [v[0] for party, v in by_party.items()
+                if len(v) == 1 and v[0].payment_format in TRANSFER_FORMATS and not is_hub(case, party, hub)]
+
+    sent = _densest(one_offs(out_edges, "dst"), ONE_OFF_DAYS)
+    got = _densest(one_offs(in_edges, "src"), ONE_OFF_DAYS)
+    n_out, n_in = len(sent), len(got)
+    if max(n_out, n_in) < 2:
+        return _signal("one_off_transfers", "No burst of one-off bank transfers: the subject's transfer "
+                                            "counterparties recur.", {"out": n_out, "in": n_in}, "context", 0)
+    if min(n_out, n_in) >= 2 and 4 * min(n_out, n_in) >= max(n_out, n_in):
+        shape = "gather-scatter"
+    else:
+        shape = "fan-out" if n_out >= n_in else "fan-in"
+    big, small = max(n_out, n_in), min(n_out, n_in)
+    strength = 3 if (big >= ONE_OFF_STRONG or small >= ONE_OFF_BOTH) else 2 if big >= ONE_OFF_MEDIUM or small >= 2 else 1
+    parts = []
+    if n_out >= 2 or shape == "gather-scatter":
+        parts.append(f"paid {n_out} different accounts one transfer each")
+    if n_in >= 2 or shape == "gather-scatter":
+        parts.append(f"received one transfer each from {n_in} different accounts")
+    formats = sorted({e.payment_format for e in sent + got})
+    return _signal(
+        "one_off_transfers",
+        f"Within {ONE_OFF_DAYS} days the subject {' and '.join(parts)} ({'/'.join(formats)}), with no other "
+        f"payments to or from them in the traced data ({shape} shape; hubs excluded).",
+        {"shape": shape, "out": n_out, "in": n_in, "days": ONE_OFF_DAYS},
+        "suspicious", strength, sent + got,
+    )
+
+
+def layered_transfer_signal(case: CaseState, subject: str) -> dict[str, Any] | None:
+    """One-off transfers where the money keeps moving by transfer: the recipient passes it on within
+    72 hours, or the sender had just been funded by transfer (layering through several accounts)."""
+    out_edges, in_edges = _neighbours(case, subject)
+    hub = hub_threshold(case, subject)
+    window = timedelta(hours=72)
+    counts: dict[tuple[str, str], int] = defaultdict(int)
+    for e in out_edges:
+        counts[("out", e.dst)] += 1
+    for e in in_edges:
+        counts[("in", e.src)] += 1
+    chains: list[tuple[Edge, Edge]] = []
+    others = [x for x in case.edges.values() if not x.is_self and x.payment_format in TRANSFER_FORMATS]
+    for e in out_edges:
+        if counts[("out", e.dst)] != 1 or e.payment_format not in TRANSFER_FORMATS or is_hub(case, e.dst, hub):
+            continue
+        onward = [f for f in others if f.src == e.dst and f.dst != subject and e.ts <= f.ts <= e.ts + window]
+        if onward:
+            chains.append((e, min(onward, key=lambda f: f.ts)))
+    for e in in_edges:
+        if counts[("in", e.src)] != 1 or e.payment_format not in TRANSFER_FORMATS or is_hub(case, e.src, hub):
+            continue
+        prior = [f for f in others if f.dst == e.src and f.src != subject and e.ts - window <= f.ts <= e.ts]
+        if prior:
+            chains.append((max(prior, key=lambda f: f.ts), e))
+    if not chains:
+        return _signal("layered_transfers", "None of the subject's one-off transfers is passed on (or was funded) "
+                                            "by another transfer within 72 hours.", 0, "context", 0)
+    middles = {(a.dst) for a, _ in chains}
+    strength = 2 if len(middles) >= 2 else 1
+    return _signal(
+        "layered_transfers",
+        f"{len(middles)} account(s) in the subject's one-off transfers moved the money on by transfer within 72 hours "
+        f"(received and paid onward, or funded just before paying the subject): a layering chain.",
+        {"chains": len(middles)}, "suspicious", strength, [x for pair in chains for x in pair],
+        _degree_qids(case, middles),
+    )
+
+
 def cross_institution_signal(case: CaseState, subject: str) -> dict[str, Any] | None:
     out_edges, in_edges = _neighbours(case, subject)
     cps = {e.dst for e in out_edges} | {e.src for e in in_edges}
@@ -406,7 +506,7 @@ def counterparty_mix_signal(case: CaseState, subject: str) -> dict[str, Any] | N
 
 def compute_signals(case: CaseState, subject: str | None = None) -> list[dict[str, Any]]:
     subject = subject or case.subject
-    makers = [cycle_signal, convergence_signal, interconnection_signal, pass_through_signal, uniform_series_signal,
+    makers = [cycle_signal, one_off_transfer_signal, layered_transfer_signal, convergence_signal, interconnection_signal, pass_through_signal, uniform_series_signal,
               burst_signal, turnover_signal, cross_institution_signal, hub_signal, channel_signal,
               counterparty_mix_signal]
     signals = []
