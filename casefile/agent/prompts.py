@@ -36,6 +36,10 @@ HOW_TO_JUDGE = """How to judge (read this before deciding anything):
   to the subject, or several of the subject's counterparties feeding the same account.
 - What other accounts do with their own money is context, not evidence against the subject, unless you can
   trace the same funds (a similar amount, within days) from the subject through them.
+- Equally, do not explain away a measured structure with a guess. A ring, several counterparties feeding one
+  account, one-off transfers or layering stays suspicious unless the data shows a specific innocent explanation
+  (for example the same counterparties trading both ways throughout the period, payroll to many individuals,
+  or a marketplace), and you cite it.
 - The signals are measured from the money-flow graph; a timing coincidence or a guess about balances is not."""
 
 

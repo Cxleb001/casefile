@@ -23,27 +23,35 @@ from .prompts import VERIFIER_SYSTEM
 
 VERIFY_STEP = "verify"
 VERIFY_MAX_TOKENS = 12000  # thinking tokens count too
+EVIDENCE_CHARS = 5000  # per claim sent to the model check (summaries and signals come first)
 
 _ACCOUNT = re.compile(r"\b\d{1,6}:[0-9A-Za-z]{4,}\b")
 _DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 _TIME = re.compile(r"\b\d{1,2}:\d{2}\b")
+_DASHES = str.maketrans({c: "-" for c in "\u2010\u2011\u2012\u2013\u2014\u2212"})
+_MONTH = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?"
+# Dates written with month names ("1-10 Sep 2022", "Sep 3", "September 1-17, 2022") and bare years: the
+# deterministic layer cannot match these to ISO timestamps, so it leaves them to the model check.
+_WORD_DATE = re.compile(rf"\b(?:\d{{1,2}}(?:\s*-\s*\d{{1,2}})?\s+{_MONTH}(?:,?\s+\d{{4}})?|{_MONTH}\s+\d{{1,2}}"
+                        rf"(?:\s*-\s*\d{{1,2}})?(?:,?\s+\d{{4}})?)\b|(?<![\w$.,])(?:19|20)\d{{2}}(?![\w.,]\d)", re.IGNORECASE)
 _NUMBER = re.compile(r"(?<![\w.:\-])\$?(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(%|k\b|K\b|m\b|M\b|million\b|thousand\b)?")
 
 
 def evidence_text(case: CaseState, store, qid: str, max_rows: int = 60) -> str:
-    """Everything a claim citing ``qid`` may rely on: the query's rows, and the tool summaries and signals built on it."""
+    """Everything a claim citing ``qid`` may rely on: the tool summaries and signals built on the query first
+    (they are short and are what most claims restate), then the query's rows."""
     parts = []
-    record = store.get_query(qid)
-    if record:
-        rows = record.get("rows", [])[:max_rows]
-        parts.append(f"{qid} {record.get('purpose', '')}: columns {record.get('columns')}; "
-                     f"{record.get('row_count', 0)} rows; first rows: {json.dumps(rows, default=str)}")
     for obs in case.observations:
         if qid in obs.query_ids:
             parts.append(f"tool summary ({obs.tool}): {obs.summary}")
     for sig in case.signals:
         if qid in sig.get("query_ids", []):
             parts.append(f"signal {sig['name']}: {sig['finding']} value={json.dumps(sig.get('value'), default=str)}")
+    record = store.get_query(qid)
+    if record:
+        rows = record.get("rows", [])[:max_rows]
+        parts.append(f"{qid} {record.get('purpose', '')}: columns {record.get('columns')}; "
+                     f"{record.get('row_count', 0)} rows; first rows: {json.dumps(rows, default=str)}")
     return "\n".join(parts)
 
 
@@ -62,8 +70,9 @@ def _numbers(text: str) -> list[tuple[float, int, str]]:
     return found
 
 
-def _strip(text: str) -> str:
-    return _TIME.sub(" ", _DATE.sub(" ", _ACCOUNT.sub(" ", text)))
+def _strip(text: str, word_dates: bool = False) -> str:
+    text = _TIME.sub(" ", _DATE.sub(" ", _ACCOUNT.sub(" ", text)))
+    return _WORD_DATE.sub(" ", text) if word_dates else text
 
 
 def deterministic_check(claim: dict[str, Any], case: CaseState, store) -> tuple[str | None, str]:
@@ -74,13 +83,13 @@ def deterministic_check(claim: dict[str, Any], case: CaseState, store) -> tuple[
         return "cites no evidence", ""
     if not cited:
         return f"cites evidence that does not exist in this case: {', '.join(claim['evidence'])}", ""
-    evidence = "\n".join(evidence_text(case, store, q) for q in cited)
-    text = claim["text"]
+    evidence = "\n".join(evidence_text(case, store, q) for q in cited).translate(_DASHES)
+    text = claim["text"].translate(_DASHES)
     missing = [a for a in _ACCOUNT.findall(text) if a not in evidence and a.split(":")[1] not in evidence]
     missing += [d for d in _DATE.findall(text) if d not in evidence]
     if claim.get("kind") == "fact":
         pool = [v for v, _, _ in _numbers(_strip(evidence))]
-        for value, decimals, raw in _numbers(_strip(text)):
+        for value, decimals, raw in _numbers(_strip(text, word_dates=True)):
             if value < 2 and decimals <= 0:
                 continue  # "1 account", "0 matches": too common to check meaningfully
             if decimals == -1:  # "3.4k", "1.2 million": approximate
@@ -111,7 +120,8 @@ def verify_report(report: dict[str, Any], case: CaseState, store, llm=None) -> d
             to_model.append((claim, evidence))
 
     if llm is not None and to_model:
-        payload = [{"id": c["id"], "kind": c["kind"], "claim": c["text"], "evidence": ev[:3500]} for c, ev in to_model]
+        payload = [{"id": c["id"], "kind": c["kind"], "claim": c["text"], "evidence": ev[:EVIDENCE_CHARS]}
+                   for c, ev in to_model]
         messages = [{"role": "system", "content": VERIFIER_SYSTEM},
                     {"role": "user", "content": json.dumps({"claims": payload}, ensure_ascii=False)}]
         try:

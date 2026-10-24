@@ -139,3 +139,37 @@ def test_other_bad_requests_still_fail_loudly():
     llm.client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
     with pytest.raises(LLMError, match="context too long"):
         llm.chat("plan", [{"role": "user", "content": "hi"}])
+
+
+class _Store:
+    def __init__(self, rows):
+        self.rows = rows
+
+    def get_query(self, qid):
+        return {"purpose": "transactions", "columns": ["ts", "amount"], "row_count": len(self.rows), "rows": self.rows}
+
+
+def _case(summary):
+    obs = SimpleNamespace(tool="get_transactions", summary=summary, query_ids=["Q-0000000001"])
+    return SimpleNamespace(observations=[obs], signals=[], all_query_ids=lambda: ["Q-0000000001"])
+
+
+def test_verifier_reads_unicode_dashes_and_month_name_dates():
+    from casefile.agent.verifier import deterministic_check
+
+    store = _Store([["2022-09-01 05:40", 1984.37]] * 100)
+    case = _case("34 transactions totalling $1,984.37 between 2022-09-01 and 2022-09-10.")
+    ok = {"kind": "fact", "evidence": ["Q-0000000001"],
+          "text": "On 2022‑09‑01 (1‑10 Sep 2022) the subject paid $1,984.37 in 34 transactions."}
+    assert deterministic_check(ok, case, store)[0] is None
+    wrong = {**ok, "text": "During Sep 1–10, 2022 the subject paid $2,500.00 in 34 transactions."}
+    failure, _ = deterministic_check(wrong, case, store)
+    assert failure and "2,500.00" in failure and "2022" not in failure
+
+
+def test_verifier_shows_tool_summaries_before_raw_rows():
+    from casefile.agent.verifier import evidence_text
+
+    store = _Store([["2022-09-01 05:40", 1.0]] * 60)
+    text = evidence_text(_case("34 Institution B counterparties could not be screened."), store, "Q-0000000001")
+    assert text.index("could not be screened") < text.index("first rows")
