@@ -23,10 +23,11 @@ from casefile.config import get_settings  # noqa: E402
 
 SKIP = ("reward", "embed", "retriever", "rerank", "safety", "guard", "parse", "ocr", "-vl", "vlm", "audio", "asr")
 # Preferred models per step, best first (substring match on the model id).
+# plan runs many short investigation steps, so it prefers a fast model; verify (and the report) the strongest.
 PREFER = {
-    "plan": ["nemotron-3-super", "nemotron-super", "nemotron-3-ultra", "nemotron-ultra", "nemotron-3-nano", "nemotron"],
-    "verify": ["nemotron-3-super", "nemotron-super", "nemotron-3-ultra", "nemotron-ultra", "nemotron-3-nano", "nemotron"],
-    "fast": ["nemotron-3-nano", "nemotron-nano-9b", "nemotron-nano", "nemotron-3-super", "nemotron"],
+    "plan": ["nemotron-3.5-lightning", "nemotron-3-nano", "nemotron-nano", "nemotron-3-super", "nemotron"],
+    "verify": ["nemotron-3-ultra", "nemotron-ultra", "nemotron-3-super", "nemotron-super", "nemotron"],
+    "fast": ["nemotron-3.5-lightning", "nemotron-3-nano", "nemotron-nano-9b", "nemotron-nano", "nemotron"],
 }
 
 

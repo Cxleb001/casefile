@@ -16,7 +16,8 @@ from typing import Any, Callable
 from ..config import EVAL_DIR, RUNS_DIR
 from .case import CaseState
 from .investigator import investigate
-from .report import draft_report, report_json, report_markdown, rules_report
+from .analysis import compute_signals
+from .report import apply_evidence_standard, draft_report, report_json, report_markdown, rules_report
 from .tools import Toolbox
 from .verifier import verify_report
 from .workup import standard_workup
@@ -56,6 +57,8 @@ def run_case(alert: dict[str, Any], *, backend, store, settings, llm=None, max_s
     if llm is not None:
         emit({"type": "stage", "stage": "investigation"})
         investigation = investigate(toolbox, llm, max_steps=max_steps, on_event=emit)
+        # The investigation added its own queries to the graph: measure the structure again on all of it.
+        case.signals = compute_signals(case)
         emit({"type": "stage", "stage": "report"})
         report = draft_report(case, store, llm, investigation, settings)
     else:
@@ -63,6 +66,8 @@ def run_case(alert: dict[str, Any], *, backend, store, settings, llm=None, max_s
 
     emit({"type": "stage", "stage": "verify"})
     report = verify_report(report, case, store, llm)
+    if llm is not None:
+        report = apply_evidence_standard(report, case)
 
     # A decision built on failed data checks must never go out looking confident.
     failed = [o for o in case.observations if o.error]

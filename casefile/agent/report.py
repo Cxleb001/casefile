@@ -9,7 +9,8 @@ from .analysis import suspicion_score
 from .case import CaseState
 from .prompts import TYPOLOGIES, report_system
 
-REPORT_STEP = "plan"
+REPORT_STEP = "report"
+REPORT_MAX_TOKENS = 12000  # thinking tokens count too
 
 
 def evidence_index(case: CaseState, store) -> str:
@@ -28,6 +29,7 @@ def _record_for_model(case: CaseState, store, investigation: dict[str, Any] | No
         "INVESTIGATION RECORD\n" + "\n\n".join(f"#{o.step} " + o.for_model(4000) for o in case.observations),
         "SIGNALS\n" + "\n".join(f"- {s['name']} [{s['assessment']}, {s['strength']}/3]: {s['finding']} "
                                 f"(evidence: {', '.join(s['query_ids'][:6]) or 'derived'})" for s in case.signals),
+        "MEASURED STRUCTURE (deterministic, from the signals above)\n" + _measured_line(case),
         "LIMITATIONS\n" + ("\n".join(f"- {x}" for x in case.limitations) or "- none"),
         "EVIDENCE INDEX (cite these ids)\n" + evidence_index(case, store),
     ]
@@ -35,6 +37,13 @@ def _record_for_model(case: CaseState, store, investigation: dict[str, Any] | No
         thoughts = [f"- step {s['step']}: {s.get('thought', '')} -> {s.get('action')}" for s in investigation["steps"]]
         parts.append("INVESTIGATOR NOTES\n" + "\n".join(thoughts))
     return "\n\n".join(parts)
+
+
+def _measured_line(case: CaseState) -> str:
+    measured = rules_report(case)
+    return (f"{measured['disposition']} (typology {measured['typology']}, suspicion score "
+            f"{suspicion_score(case.signals)}). Escalation needs one strong structural signal, two medium ones, "
+            f"or a score of 6 or more.")
 
 
 def normalise(raw: Any, case: CaseState) -> dict[str, Any]:
@@ -99,13 +108,61 @@ def draft_report(case: CaseState, store, llm, investigation: dict[str, Any] | No
     messages = [{"role": "system", "content": report_system(settings)},
                 {"role": "user", "content": _record_for_model(case, store, investigation)}]
     try:
-        raw, result = llm.chat_json(REPORT_STEP, messages, max_tokens=6000, temperature=0.1, case_id=case.case_id)
+        raw, result = llm.chat_json(REPORT_STEP, messages, max_tokens=REPORT_MAX_TOKENS, temperature=0.1,
+                                    case_id=case.case_id)
     except LLMError as error:
-        messages.append({"role": "user", "content": f"That was not one valid JSON object ({error}). Reply again "
-                                                    "with exactly the JSON object described."})
-        raw, result = llm.chat_json(REPORT_STEP, messages, max_tokens=6000, temperature=0.0, case_id=case.case_id)
+        messages.append({"role": "user", "content": f"That was not one valid JSON object ({str(error)[:200]}). "
+                                                    "Reply again with exactly the JSON object described, shorter."})
+        try:
+            raw, result = llm.chat_json(REPORT_STEP, messages, max_tokens=REPORT_MAX_TOKENS, temperature=0.0,
+                                        case_id=case.case_id)
+        except LLMError as again:
+            # A case must never fail because a reply was malformed: fall back to the measured decision.
+            report = rules_report(case)
+            report["needs_review"] = True
+            report["limitations"].insert(0, f"The model's report could not be used ({str(again)[:160]}); "
+                                            "this is the rules-only decision from the measured signals.")
+            report["author"] = {"model": "rules (model report unusable)", "step": REPORT_STEP, "latency_ms": 0}
+            return report
     report = normalise(raw, case)
     report["author"] = {"model": result.model, "step": REPORT_STEP, "latency_ms": result.latency_ms}
+    return report
+
+
+def apply_evidence_standard(report: dict[str, Any], case: CaseState) -> dict[str, Any]:
+    """The decision must rest on a laundering structure measured in the money-flow graph.
+
+    The model investigates, argues and writes, but models find a story in any
+    graph. So the disposition follows the measured structure (the deterministic
+    signals, recomputed after the investigation added its own queries). When the
+    model disagrees, its reasons stay in the report and the case goes to a human.
+    """
+    measured = rules_report(case)
+    model_view = report["disposition"]
+    report["model_disposition"] = model_view
+    report["measured"] = {"disposition": measured["disposition"], "typology": measured["typology"],
+                          "score": suspicion_score(case.signals),
+                          "signals": [f"{s['name']} {s['strength']}/3" for s in case.signals
+                                      if s["assessment"] == "suspicious" and s["strength"] > 0]}
+    if model_view == measured["disposition"]:
+        report["decision_basis"] = "The model's conclusion and the measured structure agree."
+        if report["disposition"] == "ESCALATE" and report.get("typology", "NONE") == "NONE":
+            report["typology"] = measured["typology"]
+        return report
+    if measured["disposition"] == "ESCALATE":
+        note = (f"Needs review: the model leaned CLOSE, but the measured structure ({', '.join(report['measured']['signals'])}) "
+                f"meets the escalation standard, so the case is escalated for a human to weigh the model's reasons.")
+        report["typology"] = measured["typology"]
+    else:
+        note = ("Needs review: the model leaned ESCALATE, but no laundering structure in the subject's own funds "
+                f"meets the escalation standard (score {report['measured']['score']}), so the case is closed and the "
+                "model's concerns are listed for a human reviewer.")
+        report["typology"] = "NONE"
+    report["disposition"] = measured["disposition"]
+    report["needs_review"] = True
+    report["confidence"] = min(report.get("confidence", 0.5), 0.5)
+    report["decision_basis"] = note
+    report["limitations"].insert(0, note)
     return report
 
 
@@ -167,7 +224,9 @@ def report_markdown(report: dict[str, Any], case: CaseState, store=None) -> str:
              f"- Alert: {case.alert.get('alert_id')} ({case.alert.get('rules')}), {case.alert.get('alert_ts')}",
              f"- Typology: {report['typology']}; confidence {report['confidence']:.0%}",
              f"- Written by: {report.get('author', {}).get('model', '?')}", ""]
-    if report.get("needs_review"):
+    if report.get("decision_basis") and report.get("needs_review"):
+        lines += [f"> {report['decision_basis']}", ""]
+    elif report.get("needs_review"):
         lines += ["> Needs human review: the verifier rejected the claims this decision rests on.", ""]
     lines += ["## Findings", ""]
     for c in report["claims"]:

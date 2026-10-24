@@ -22,6 +22,7 @@ from .case import CaseState
 from .prompts import VERIFIER_SYSTEM
 
 VERIFY_STEP = "verify"
+VERIFY_MAX_TOKENS = 12000  # thinking tokens count too
 
 _ACCOUNT = re.compile(r"\b\d{1,6}:[0-9A-Za-z]{4,}\b")
 _DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
@@ -114,7 +115,8 @@ def verify_report(report: dict[str, Any], case: CaseState, store, llm=None) -> d
         messages = [{"role": "system", "content": VERIFIER_SYSTEM},
                     {"role": "user", "content": json.dumps({"claims": payload}, ensure_ascii=False)}]
         try:
-            raw, result = llm.chat_json(VERIFY_STEP, messages, max_tokens=4096, temperature=0.0, case_id=case.case_id)
+            raw, result = llm.chat_json(VERIFY_STEP, messages, max_tokens=VERIFY_MAX_TOKENS, temperature=0.0,
+                                        case_id=case.case_id)
             verdicts = {str(v.get("id")): v for v in (raw.get("verdicts", []) if isinstance(raw, dict) else [])
                         if isinstance(v, dict)}
             for claim, _ in to_model:

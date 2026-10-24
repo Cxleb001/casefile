@@ -137,6 +137,12 @@ if report.get("needs_review"):
     badge += ' <span class="cf-badge cf-review">NEEDS REVIEW</span>'
 st.markdown(f"## {case['alert']['alert_id']} · `{case['subject']}` &nbsp; {badge}", unsafe_allow_html=True)
 st.markdown(f"**{report.get('headline', '')}**")
+if report.get("decision_basis"):
+    measured = report.get("measured", {})
+    signals = ", ".join(measured.get("signals", [])) or "none"
+    (st.warning if report.get("needs_review") else st.info)(
+        f"{report['decision_basis']}  \nMeasured structure: **{measured.get('disposition', '?')}** "
+        f"(score {measured.get('score', '?')}; signals: {signals}) · model leaned **{report.get('model_disposition', '?')}**")
 v = report.get("verification", {})
 cols = st.columns(6)
 cols[0].metric("Typology", report.get("typology", "NONE"))

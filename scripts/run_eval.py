@@ -133,6 +133,7 @@ def main() -> int:
         row = {
             "alert_id": alert["alert_id"], "truth": is_suspicious, "patterns": sorted(patterns),
             "escalate": report["disposition"] == "ESCALATE", "typology": report.get("typology"),
+            "model_escalate": report.get("model_disposition", report["disposition"]) == "ESCALATE",
             "typology_hit": report.get("typology") in patterns,
             "confidence": report.get("confidence"),
             "sanctions_expected": expected, "sanctions_flagged": bool(report["sanctions_referral"].get("needed")),
@@ -144,10 +145,15 @@ def main() -> int:
         row["sanctions_ok"] = expected is None or row["sanctions_flagged"] == expected
         rows.append(row)
         ok = "ok " if row["escalate"] == row["truth"] else "MISS"
+        leaning = report.get("model_disposition")
+        note = f"  (model leaned {leaning}; needs review)" if leaning and leaning != report["disposition"] else ""
         print(f"{ok} {alert['alert_id']}  truth={'SUSP' if is_suspicious else 'clean'} {'|'.join(sorted(patterns)) or '-':<24} "
-              f"-> {report['disposition']:<8} {report.get('typology', ''):<15} {row['seconds']:>5}s", flush=True)
+              f"-> {report['disposition']:<8} {report.get('typology', ''):<15} {row['seconds']:>5}s{note}", flush=True)
 
     summary = score(rows)
+    if llm is not None:  # what the model alone would have decided, before the evidence standard
+        alone = score([{**r, "escalate": r["model_escalate"]} for r in rows])
+        summary["model_alone"] = {k: alone[k] for k in ("accuracy", "precision", "recall", "f1", "confusion")}
     summary.update({"name": name, "mode": "rules" if args.rules else "model",
                     "view": "single-bank" if args.single_bank else "federated",
                     "backend": backend.name, "wall_seconds": round(time.time() - started, 1),
@@ -161,6 +167,11 @@ def main() -> int:
           f"{summary['f1']:.2f} | {summary['typology_hit_rate'] if summary['typology_hit_rate'] is not None else '-'} | "
           f"{summary['sanctions_accuracy'] if summary['sanctions_accuracy'] is not None else '-'} | "
           f"{summary['claims_rejected_share']:.0%} | {summary['mean_seconds']} |")
+    if "model_alone" in summary:
+        a = summary["model_alone"]
+        print(f"| model alone (before the evidence standard) | {a['accuracy']:.0%} | {a['precision']:.0%} | "
+              f"{a['recall']:.0%} | {a['f1']:.2f} | | | | |")
+        print(f"\nneeds review: {summary['needs_review']} of {summary['alerts']}")
     print(f"\nconfusion: {summary['confusion']}; results: {out_dir / 'results.json'}")
     store.close()
     backend.close()

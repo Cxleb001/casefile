@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from openai import OpenAI
+from openai import BadRequestError, OpenAI
 
 from .config import Settings, get_settings
 
@@ -65,12 +65,25 @@ class LLM:
             max_retries=3,
         )
         self.on_call = on_call
+        self._no_thinking_control: set[str] = set()  # models that rejected chat_template_kwargs
 
     def model_for(self, step: str) -> str:
         try:
             return self.settings.models[step]
         except KeyError as error:
             raise LLMError(f"Unknown step {step!r}; use one of {sorted(self.settings.models)}") from error
+
+    def _thinking_kwargs(self, step: str, model: str) -> dict[str, Any] | None:
+        """Nemotron chat-template switches for this step's thinking level (see config.DEFAULT_THINKING)."""
+        level = getattr(self.settings, "thinking", {}).get(step)
+        if (not level or self.settings.llm_provider != "nvidia" or "nemotron" not in model.lower()
+                or model in self._no_thinking_control):
+            return None
+        if level == "off":
+            return {"enable_thinking": False}
+        if level == "medium":
+            return {"enable_thinking": True, "medium_effort": True}
+        return {"enable_thinking": True}
 
     def list_models(self) -> list[str]:
         return sorted(m.id for m in self.client.models.list().data)
@@ -98,14 +111,29 @@ class LLM:
             kwargs["tools"] = tools
             if tool_choice is not None:
                 kwargs["tool_choice"] = tool_choice
-        if extra_body:
-            kwargs["extra_body"] = extra_body
+        body = dict(extra_body or {})
+        template = self._thinking_kwargs(step, model)
+        if template and "chat_template_kwargs" not in body:
+            body["chat_template_kwargs"] = template
+        if body:
+            kwargs["extra_body"] = body
         if self.settings.llm_provider == "meterless":
             kwargs["extra_headers"] = {"meterless-scope": "user"}
 
         started = time.perf_counter()
         try:
-            response = self.client.chat.completions.create(**kwargs)
+            try:
+                response = self.client.chat.completions.create(**kwargs)
+            except BadRequestError:
+                if not template:
+                    raise
+                # This model does not take thinking controls: remember, and ask again without them.
+                self._no_thinking_control.add(model)
+                body.pop("chat_template_kwargs", None)
+                kwargs.pop("extra_body", None)
+                if body:
+                    kwargs["extra_body"] = body
+                response = self.client.chat.completions.create(**kwargs)
         except Exception as error:  # surface the provider's own message
             raise LLMError(f"{self.settings.llm_provider} call for step '{step}' ({model}) failed: {error}") from error
         latency_ms = int((time.perf_counter() - started) * 1000)

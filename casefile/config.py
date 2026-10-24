@@ -30,6 +30,11 @@ TABLE_ENV = {
 }
 
 # Default registered names, matching scripts/zetaris/register_sources.sql.
+# How much each step lets a Nemotron model think before it answers: "off", "medium"
+# or "on". Thinking tokens count against the reply's token cap and take time, so the
+# many short investigation steps run without it. Override with CASEFILE_THINKING_<STEP>.
+DEFAULT_THINKING = {"fast": "off", "plan": "off", "report": "medium", "verify": "medium"}
+
 DEFAULT_TABLES = {
     "ledger_a": "inst_a.ledger_a",
     "kyc_a": "inst_a.kyc_a",
@@ -38,15 +43,16 @@ DEFAULT_TABLES = {
     "watchlist": "compliance.watchlist",
 }
 
-# Default model per step for each provider. "fast" extracts and summarises,
-# "plan" runs the investigation loop, "verify" checks claims and writes the
-# report. Override any of them in .env; `scripts/check_setup.py --models`
-# lists what your key can call.
+# Default model per step for each provider. "plan" runs the investigation loop
+# (many short tool choices, so a fast model), "report" writes the decision and SAR
+# draft (defaults to the verify model), "verify" checks the claims (the strongest
+# model); "fast" is spare for quick extraction. Override any of them in .env; `python scripts/probe_models.py`
+# shows which models your key can actually call.
 DEFAULT_MODELS = {
     "nvidia": {
-        "fast": "nvidia/nvidia-nemotron-nano-9b-v2",
-        "plan": "nvidia/nemotron-3-super-120b-a12b",
-        "verify": "nvidia/nemotron-3-super-120b-a12b",
+        "fast": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "plan": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "verify": "nvidia/nemotron-3-ultra-550b-a55b",
     },
     "meterless": {
         "fast": "meterless/text.fast",
@@ -80,6 +86,7 @@ class Settings:
     llm_base_url: str
     llm_api_key: str
     models: dict[str, str] = field(default_factory=dict)
+    thinking: dict[str, str] = field(default_factory=dict)
 
     pg_url: str = ""
     s3_bucket: str = ""
@@ -117,6 +124,13 @@ def get_settings() -> Settings:
         "plan": _env("CASEFILE_MODEL_PLAN", defaults["plan"]),
         "verify": _env("CASEFILE_MODEL_VERIFY", defaults["verify"]),
     }
+    models["report"] = _env("CASEFILE_MODEL_REPORT", models["verify"])
+    thinking = {}
+    for step, default in DEFAULT_THINKING.items():
+        level = _env(f"CASEFILE_THINKING_{step.upper()}", default).lower()
+        if level not in {"off", "medium", "on"}:
+            raise ValueError(f"CASEFILE_THINKING_{step.upper()} must be off, medium or on, got {level!r}")
+        thinking[step] = level
 
     backend = _env("CASEFILE_DATA_BACKEND", "local").lower()
     if backend not in {"local", "zetaris"}:
@@ -147,6 +161,7 @@ def get_settings() -> Settings:
         llm_base_url=base_url,
         llm_api_key=api_key,
         models=models,
+        thinking=thinking,
         pg_url=_env("PG_URL"),
         s3_bucket=_env("S3_BUCKET"),
         s3_prefix=_env("S3_PREFIX", "casefile").strip("/"),
