@@ -63,6 +63,16 @@ def run_case(alert: dict[str, Any], *, backend, store, settings, llm=None, max_s
 
     emit({"type": "stage", "stage": "verify"})
     report = verify_report(report, case, store, llm)
+
+    # A decision built on failed data checks must never go out looking confident.
+    failed = [o for o in case.observations if o.error]
+    if failed:
+        tools = ", ".join(sorted({o.tool for o in failed}))
+        report["needs_review"] = True
+        report["confidence"] = min(report.get("confidence", 0.5), 0.3)
+        report["limitations"].insert(0, f"{len(failed)} of {len(case.observations)} checks failed ({tools}); "
+                                        f"this decision rests on incomplete data.")
+        report["data_errors"] = [{"tool": o.tool, "error": (o.error or "")[:300]} for o in failed]
     report["investigation"] = investigation
     report["timing"] = {"seconds": round(time.perf_counter() - started, 1),
                         "queries": len(case.all_query_ids()), "tool_calls": len(case.observations)}

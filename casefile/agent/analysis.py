@@ -22,9 +22,11 @@ LAUNDERING_FORMATS = {"ACH", "Wire", "Cash", "Bitcoin"}
 
 def _signal(name: str, finding: str, value: Any, assessment: str, strength: int, edges: list[Edge] | None = None,
             extra_qids: list[str] | None = None) -> dict[str, Any]:
-    qids = set(extra_qids or [])
-    for e in edges or []:
-        qids.update(e.query_ids)
+    ordered: list[str] = []
+    for e in sorted(edges or [], key=lambda e: e.ts):
+        ordered.extend(sorted(e.query_ids))
+    ordered.extend(extra_qids or [])
+    qids = list(dict.fromkeys(q for q in ordered if q))
     return {
         "name": name,
         "finding": finding,
@@ -32,7 +34,7 @@ def _signal(name: str, finding: str, value: Any, assessment: str, strength: int,
         "assessment": assessment,
         "strength": int(strength),
         "tx_ids": sorted({e.tx_id for e in edges or []})[:40],
-        "query_ids": sorted(qids),
+        "query_ids": qids,
     }
 
 

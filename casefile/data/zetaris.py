@@ -79,6 +79,15 @@ def _extract(payload: Any) -> tuple[list[str] | None, list[list[Any]]]:
     return columns, []
 
 
+_IDENTIFIER_NAMES = {"acct", "cp", "tx_id", "customer_id", "list_id", "national_id", "seen_in"}
+
+
+def _is_identifier(column: str) -> bool:
+    """Columns whose values are ids, even when they look like numbers."""
+    name = str(column).lower()
+    return "account" in name or name in _IDENTIFIER_NAMES or name.endswith("_customer_id")
+
+
 def _error_text(payload: Any) -> str | None:
     if isinstance(payload, dict):
         for key in ("error", "errorMessage", "message", "detail"):
@@ -205,7 +214,10 @@ class ZetarisBackend:
                 f"Expected {len(names)} columns ({', '.join(names)}) but rows have {width}; "
                 "alias every SELECT column and pass the same names."
             )
-        rows = [[coerce_value(v) for v in row] for row in rows]
+        # Identifiers must stay text: AMLworld account ids are hex, so "8729E230" would
+        # otherwise parse as 8.7e233 and "000278764" would lose its leading zeros.
+        keep_text = [_is_identifier(name) for name in names]
+        rows = [[v if keep else coerce_value(v) for v, keep in zip(row, keep_text)] for row in rows]
         return QueryResult(
             sql=sql,
             columns=names,

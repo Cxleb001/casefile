@@ -1,0 +1,40 @@
+# Casefile's data sources on your own machine: one small Postgres with three
+# separate databases, one per data owner.
+#
+#   bank_a      Institution A's core banking (ledger + full KYC)
+#   bank_b      Institution B's systems (ledger + KYC; shared only through a governed view)
+#   compliance  the synthetic watchlist
+#
+# Capped at 256 MB so it fits next to Zetaris on an 8 GB laptop.
+#
+#   docker compose -f infra/docker-compose.sources.yml up -d
+#   docker compose -f infra/docker-compose.sources.yml down        # stop (data kept)
+#   docker compose -f infra/docker-compose.sources.yml down -v     # stop and delete the data
+#
+# Zetaris (running in its own containers) reaches this database at
+# host.docker.internal:5433. Your Python scripts reach it at localhost:5433.
+
+services:
+  sources:
+    image: postgres:16-alpine
+    container_name: casefile-sources
+    environment:
+      POSTGRES_USER: casefile
+      POSTGRES_PASSWORD: ${LOCAL_PG_PASSWORD:-casefile-local}
+      POSTGRES_DB: bank_a
+    ports:
+      - "5433:5432"
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=40", "-c", "work_mem=8MB"]
+    mem_limit: 256m
+    volumes:
+      - casefile-sources:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casefile -d bank_a"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  casefile-sources:
