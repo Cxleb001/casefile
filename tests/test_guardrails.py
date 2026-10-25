@@ -106,7 +106,9 @@ def test_thinking_controls_per_step():
                                                                                   "medium_effort": True}
     assert llm._thinking_kwargs("verify", "nvidia/nemotron-3-ultra-550b-a55b") == {"enable_thinking": True}
     assert llm._thinking_kwargs("plan", "meta/llama-3.1-8b-instruct") is None
-    assert _llm(llm_provider="meterless")._thinking_kwargs("plan", "nemotron-x") is None
+    nightshift = _llm(llm_provider="meterless")
+    assert nightshift._thinking_kwargs("plan", "meterless/text.fast") is None             # a routing mode
+    assert nightshift._thinking_kwargs("plan", "nvidia/nemotron-3-ultra-550b-a55b") == {"enable_thinking": False}
 
 
 def test_model_that_rejects_thinking_controls_is_asked_again_without_them():

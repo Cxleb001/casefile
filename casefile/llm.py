@@ -76,8 +76,10 @@ class LLM:
     def _thinking_kwargs(self, step: str, model: str) -> dict[str, Any] | None:
         """Nemotron chat-template switches for this step's thinking level (see config.DEFAULT_THINKING)."""
         level = getattr(self.settings, "thinking", {}).get(step)
-        if (not level or self.settings.llm_provider != "nvidia" or "nemotron" not in model.lower()
-                or model in self._no_thinking_control):
+        # Applies to Nemotron models called directly on NVIDIA's API, or pinned by id through Nightshift
+        # (e.g. nvidia/nemotron-3-ultra-550b-a55b); never to Nightshift routing modes (meterless/*).
+        if (not level or self.settings.llm_provider not in ("nvidia", "meterless") or "nemotron" not in model.lower()
+                or model.startswith("meterless/") or model in self._no_thinking_control):
             return None
         if level == "off":
             return {"enable_thinking": False}
