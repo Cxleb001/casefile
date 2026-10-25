@@ -74,8 +74,18 @@ same arguments.
 Tools:
 {tool_list()}
 
+You work in bounded steps (the Markovian engine). After this first step you will NOT see the record above or
+any earlier tool result again: each later step shows a short case brief, the state you wrote last time, and the
+result of the tool you just asked for. So every reply carries a "state" block with what you must remember:
+COMPLETED: what you have checked, with the answer.
+REMAINING: what you still want to test.
+DECISIONS: what you have concluded so far and why.
+CONTEXT: the exact account ids, amounts, dates and evidence ids (Q-...) you will need later.
+Keep the state under about 2,500 characters.
+
 Reply with ONE JSON object and nothing else:
-{{"thought": "<one or two sentences: what you are testing and why>", "action": "<tool name>", "args": {{...}}}}
+{{"thought": "<one or two sentences: what you are testing and why>", "action": "<tool name>", "args": {{...}},
+"state": "COMPLETED: ...\\nREMAINING: ...\\nDECISIONS: ...\\nCONTEXT: ..."}}
 When you have enough (or after at most {max_steps} actions), reply:
 {{"thought": "<summary of what you tested>", "action": "finish", "args": {{"leaning": "ESCALATE" | "CLOSE",
 "open_questions": ["..."]}}}}"""

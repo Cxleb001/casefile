@@ -255,6 +255,25 @@ with tab_trace:
         for step in plan:
             st.markdown(f"**{step['step']}.** *{step.get('thought', '')}* → `{step.get('action')}` "
                         f"{json.dumps(step.get('args', {}))}" + (f"  \n⚠️ {step['skipped']}" if step.get("skipped") else ""))
+            if step.get("carryover_in"):
+                with st.expander(f"State carried into step {step['step']} ({step.get('carryover_level') or 'marker'})"):
+                    st.text(step["carryover_in"])
+    engine = report.get("investigation", {}).get("engine")
+    if engine:
+        st.markdown("#### Markovian engine (Meterless)")
+        cols = st.columns(4)
+        cols[0].metric("Steps", engine.get("chunks", 0))
+        cols[1].metric("Run status", engine.get("status", "?"))
+        cols[2].metric("Carryover budget", f"{engine.get('chunk_config', {}).get('carryoverTokens', '?')} tokens")
+        cols[3].metric("Est. saving vs full history", f"{engine.get('estimated_efficiency_percent', 0)}%")
+        sizes = [n for n in engine.get("measured_prompt_tokens", []) if n]
+        if sizes:
+            st.caption("Prompt size per investigation step, as reported by the model provider (measured). "
+                       "Step 1 carries the full case record; later steps carry only the brief, the state and the "
+                       "latest result, so they stay flat instead of growing.")
+            st.bar_chart(pd.DataFrame({"prompt tokens": sizes}, index=[f"step {i + 1}" for i in range(len(sizes))]))
+        if engine.get("reflection"):
+            st.caption(f"Reflection pass: {engine['reflection'][:400]}")
 
 with tab_evidence:
     qids = []
