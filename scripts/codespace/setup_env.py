@@ -3,6 +3,7 @@
     python scripts/codespace/setup_env.py            # models + Zetaris
     python scripts/codespace/setup_env.py --models   # only the NVIDIA key
     python scripts/codespace/setup_env.py --zetaris  # only the Zetaris login (after start_zetaris.sh)
+    python scripts/codespace/setup_env.py --nightshift  # Meterless Nightshift as the AI provider
 """
 
 from __future__ import annotations
@@ -51,6 +52,30 @@ def models() -> None:
         print("  saved NVIDIA_API_KEY")
 
 
+def nightshift() -> None:
+    print("\nMeterless Nightshift: Casefile's AI provider. Your NVIDIA key lives in Nightshift, not in this project.")
+    print("Nightshift writes its access token to the proxy-token file in its state folder (see docs/NIGHTSHIFT.md).")
+    url = ask("Nightshift address, or its connect link (http://<host>:<port>/connect#k=<key>)", "http://127.0.0.1:8088/v1")
+    token = ""
+    if "#k=" in url:  # a connect link carries the token after #k=
+        url, token = url.split("#k=", 1)
+        url = url.split("/connect")[0]
+        if os.environ.get("CODESPACES"):  # in a Codespace the laptop's runtime arrives through the tunnel
+            port = url.rsplit(":", 1)[-1].split("/")[0] if url.count(":") >= 2 else "8088"
+            url = f"http://127.0.0.1:{port}/v1"
+        print(f"  token read from the connect link; address {url}")
+    token = token or ask("Nightshift token (hidden)", secret=True)
+    if not token:
+        print("  No token given; nothing changed.")
+        return
+    # Empty model lines fall back to Nightshift routing modes (meterless/text.fast, meterless/text.deep).
+    set_values({"CASEFILE_LLM_PROVIDER": "meterless", "METERLESS_BASE_URL": url, "METERLESS_TOKEN": token,
+                "CASEFILE_MODEL_FAST": "", "CASEFILE_MODEL_PLAN": "", "CASEFILE_MODEL_REPORT": "",
+                "CASEFILE_MODEL_VERIFY": "", "NVIDIA_API_KEY": ""})
+    print("  saved: provider meterless, the Nightshift address and token; cleared NVIDIA_API_KEY from .env")
+    print("  Check it with: python scripts/check_nightshift.py")
+
+
 def zetaris(base_url: str = "http://localhost:3000") -> None:
     print("\nZetaris: use the sign-in shown on the 'Run locally' page (step 7, Sign in).")
     email = ask("Zetaris admin email", "admin@zetaris.com")
@@ -92,8 +117,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--models", action="store_true")
     parser.add_argument("--zetaris", action="store_true")
+    parser.add_argument("--nightshift", action="store_true", help="use Meterless Nightshift as the AI provider")
     parser.add_argument("--base-url", default="http://localhost:3000", help="Zetaris web UI address")
     args = parser.parse_args()
+    if args.nightshift:
+        nightshift()
+        print(f"\n.env updated ({ENV}). It stays out of git.")
+        return 0
     both = not (args.models or args.zetaris)
     if args.models or both:
         models()

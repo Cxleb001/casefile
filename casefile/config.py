@@ -55,12 +55,36 @@ DEFAULT_MODELS = {
         "plan": "nvidia/nemotron-3.5-lightning-30b-a3b",
         "verify": "nvidia/nemotron-3-ultra-550b-a55b",
     },
+    # Nightshift model ids are routing modes, not models: the runtime picks from the fleet it has
+    # (local lanes, or cloud models such as NVIDIA's once their key is added in Nightshift).
     "meterless": {
         "fast": "meterless/text.fast",
-        "plan": "meterless/text.deep",
-        "verify": "meterless/judge.deep",
+        "plan": "meterless/text.fast",
+        "verify": "meterless/text.deep",
     },
 }
+
+
+def normalize_runtime_url(url: str) -> str:
+    """Normalise a pasted Meterless Runtime address to <host>/v1 (Meterless provider contract).
+
+    Accepts it with or without a scheme, and ending in /v1, /v1/chat/completions, /v1/models or /healthz;
+    never produces /v1/v1.
+    """
+    text = (url or "").strip()
+    if not text:
+        return ""
+    if "://" not in text:
+        text = "http://" + text
+    text = text.rstrip("/")
+    stripped = True
+    while stripped:
+        stripped = False
+        for suffix in ("/chat/completions", "/models", "/healthz", "/v1"):
+            if text.endswith(suffix):
+                text = text[: -len(suffix)].rstrip("/")
+                stripped = True
+    return text + "/v1"
 
 
 def _env(name: str, default: str = "") -> str:
@@ -116,8 +140,8 @@ def get_settings() -> Settings:
         base_url = _env("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
         api_key = _env("NVIDIA_API_KEY")
     else:
-        base_url = _env("METERLESS_BASE_URL", "http://127.0.0.1:8088/v1")
-        api_key = _env("METERLESS_TOKEN")
+        base_url = normalize_runtime_url(_env("METERLESS_BASE_URL", "http://127.0.0.1:8088/v1"))
+        api_key = _env("METERLESS_TOKEN") or _env("METERLESS_RUNTIME_TOKEN")
 
     defaults = DEFAULT_MODELS[provider]
     models = {
