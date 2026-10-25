@@ -81,6 +81,7 @@ def score(rows: list[dict]) -> dict:
         "sanctions_accuracy": round(sum(r["sanctions_ok"] for r in sanctions) / len(sanctions), 3) if sanctions else None,
         "claims_rejected_share": round(sum(r["claims_rejected"] for r in rows) / claims_total, 3) if claims_total else 0.0,
         "needs_review": sum(r["needs_review"] for r in rows),
+        "data_failures": sum(1 for r in rows if r.get("data_errors")),
         "mean_seconds": round(sum(r["seconds"] for r in rows) / len(rows), 1) if rows else 0.0,
         "mean_queries": round(sum(r["queries"] for r in rows) / len(rows), 1) if rows else 0.0,
     }
@@ -148,6 +149,7 @@ def main() -> int:
             "sanctions_expected": expected, "sanctions_flagged": bool(report["sanctions_referral"].get("needed")),
             "claims": len(report.get("claims", [])), "claims_rejected": report["verification"].get("rejected", 0),
             "needs_review": bool(report.get("needs_review")),
+            "data_errors": len(report.get("data_errors", [])),
             "seconds": report["timing"]["seconds"], "queries": report["timing"]["queries"],
             "error": report.get("error"),
         }
@@ -181,6 +183,10 @@ def main() -> int:
         print(f"| model alone (before the evidence standard) | {a['accuracy']:.0%} | {a['precision']:.0%} | "
               f"{a['recall']:.0%} | {a['f1']:.2f} | | | | |")
         print(f"\nneeds review: {summary['needs_review']} of {summary['alerts']}")
+    if summary["data_failures"]:
+        failed = ", ".join(r["alert_id"] for r in rows if r.get("data_errors"))
+        print(f"\nWARNING: {summary['data_failures']} case(s) hit data errors ({failed}); their decisions rest on "
+              "incomplete data. Fix the cause and rerun before quoting these numbers.")
     print(f"\nconfusion: {summary['confusion']}; results: {out_dir / 'results.json'}")
     store.close()
     backend.close()

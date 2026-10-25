@@ -14,6 +14,7 @@ response from your cluster if parsing ever looks wrong.
 
 from __future__ import annotations
 
+import base64
 import json
 import time
 import uuid
@@ -99,6 +100,21 @@ def _error_text(payload: Any) -> str | None:
     return None
 
 
+class _AuthExpired(Exception):
+    """A request was refused in a way an expired login token explains."""
+
+
+def _jwt_expiry(token: str) -> float | None:
+    """The exp claim of a JWT (seconds since the epoch), or None. Read only to refresh in time; never trusted."""
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        exp = json.loads(base64.urlsafe_b64decode(payload.encode()).decode("utf-8")).get("exp")
+        return float(exp) if exp else None
+    except (IndexError, ValueError, TypeError, json.JSONDecodeError):
+        return None
+
+
 class ZetarisBackend:
     name = "zetaris"
 
@@ -117,10 +133,20 @@ class ZetarisBackend:
         elif not settings.zetaris_base_url:
             raise ZetarisError("Set ZETARIS_BASE_URL in .env to the Zetaris web UI origin.")
         self._token: str | None = settings.zetaris_api_key or None
+        self._from_login = False         # a login token expires (about 15 minutes); an API key does not
+        self._expires_at: float | None = None
 
     # -- HTTP ---------------------------------------------------------------
 
     def _post(self, url: str, body: dict, timeout: int) -> Any:
+        try:
+            return self._post_once(url, body, timeout)
+        except _AuthExpired:
+            # A login token can lapse mid-run (Zetaris rejects it with 400/401/403): sign in again, retry once.
+            self._token, self._expires_at = None, None
+            return self._post_once(url, body, timeout, retrying=True)
+
+    def _post_once(self, url: str, body: dict, timeout: int, retrying: bool = False) -> Any:
         headers = {
             "Authorization": f"Bearer {self._auth_token()}",
             "X-Org-ID": self.settings.zetaris_org_id,
@@ -133,6 +159,8 @@ class ZetarisBackend:
                 text = response.read().decode("utf-8")
                 return json.loads(text) if text.strip() else None
         except HTTPError as error:
+            if self._from_login and not retrying and error.code in (400, 401, 403):
+                raise _AuthExpired() from error
             detail = error.read(600).decode("utf-8", errors="replace")
             if "text/html" in error.headers.get("content-type", ""):
                 detail = "the server returned an HTML page; check the URL in .env"
@@ -147,7 +175,7 @@ class ZetarisBackend:
             raise ZetarisError(f"Cannot reach Zetaris at {url}: {reason}") from error
 
     def _auth_token(self) -> str:
-        if self._token:
+        if self._token and not (self._expires_at and time.time() > self._expires_at - 60):
             return self._token
         # Proxy route without an API key: log in with username and password.
         s = self.settings
@@ -173,6 +201,8 @@ class ZetarisBackend:
         if not isinstance(token, str) or not token:
             raise ZetarisError("Zetaris login did not return an access token.")
         self._token = token
+        self._from_login = True
+        self._expires_at = _jwt_expiry(token)
         return token
 
     # -- Public API ----------------------------------------------------------
