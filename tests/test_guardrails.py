@@ -207,3 +207,30 @@ def test_planner_argument_mistakes_do_not_count_as_incomplete_data(world):
     assert report["investigation"]["steps"][0]["error"]  # the mistake is visible in the trace
     assert "data_errors" not in report and not report.get("needs_review")
     assert not any("checks failed" in x for x in report["limitations"])
+
+
+def test_counterparty_watchlist_match_is_listed_not_referred(world):
+    from casefile.agent.case import CaseState
+    from casefile.agent.report import apply_screening_standard
+    from casefile.agent.tools import Toolbox
+
+    # X ("Mary Stone") pays nobody suspicious; S, a counterparty of X, is a strong match ("PETROV, Ivan").
+    case = CaseState("T", {**world["alert"], "account": "X"})
+    toolbox = Toolbox(world["backend"], world["store"], world["settings"], case)
+    toolbox.call("get_counterparties", {"direction": "in"})
+    toolbox.call("screen_watchlist", {})
+    report = apply_screening_standard({"sanctions_referral": {"needed": True, "reason": "counterparty S is listed"}}, case)
+    assert report["model_sanctions_referral"] is True
+    assert report["sanctions_referral"]["needed"] is False
+    assert [m["account"] for m in report["counterparty_watchlist"]] == ["1:S"]
+
+
+def test_subject_watchlist_match_is_referred_even_if_the_model_missed_it(world):
+    from casefile.agent.case import CaseState
+    from casefile.agent.report import apply_screening_standard
+    from casefile.agent.tools import Toolbox
+
+    case = CaseState("T", world["alert"])  # S is "Ivan Petrov", listed as "PETROV, Ivan" with the same DOB and country
+    Toolbox(world["backend"], world["store"], world["settings"], case).call("screen_watchlist", {})
+    report = apply_screening_standard({"sanctions_referral": {"needed": False}}, case)
+    assert report["sanctions_referral"]["needed"] is True and "PETROV" in report["sanctions_referral"]["reason"]

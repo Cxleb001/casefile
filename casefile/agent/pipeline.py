@@ -17,7 +17,8 @@ from ..config import EVAL_DIR, RUNS_DIR
 from .case import CaseState
 from .investigator import investigate
 from .analysis import compute_signals
-from .report import apply_evidence_standard, draft_report, report_json, report_markdown, rules_report
+from .report import (apply_evidence_standard, apply_screening_standard, draft_report, report_json, report_markdown,
+                     rules_report)
 from .tools import Toolbox
 from .verifier import verify_report
 from .workup import standard_workup
@@ -69,6 +70,7 @@ def run_case(alert: dict[str, Any], *, backend, store, settings, llm=None, max_s
     report = verify_report(report, case, store, llm)
     if llm is not None:
         report = apply_evidence_standard(report, case)
+    report = apply_screening_standard(report, case)
 
     # A decision built on failed data checks must never go out looking confident.
     # Incomplete data means a standard check or a query failed. A follow-up the investigator asked with

@@ -88,7 +88,8 @@ Write the case decision and a suspicious-activity-report (SAR) draft from the in
 
 Rules:
 - The decision is about money laundering. A watchlist match is reported separately as a sanctions referral;
-  a name-only match (different date of birth or country) is usually a false positive.
+  a name-only match (different date of birth or country) is usually a false positive. The sanctions referral is
+  about the SUBJECT only: a strong match on a counterparty is listed for the sanctions team automatically.
 - Every claim must cite the evidence ids (Q-...) whose rows or summaries show it. Quote numbers exactly as
   they appear in the evidence. Do not invent accounts, amounts, dates or counts.
 - Separate facts (directly in the data) from inferences (your interpretation of several facts).

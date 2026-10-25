@@ -212,6 +212,9 @@ with tab_findings:
         ref = report.get("sanctions_referral", {})
         st.markdown("#### Sanctions referral")
         (st.error if ref.get("needed") else st.success)(ref.get("reason") or ("Refer" if ref.get("needed") else "Not needed"))
+        if report.get("counterparty_watchlist"):
+            st.warning("Counterparty matches for the sanctions team:  \n" + "  \n".join(
+                f"`{m['account']}` {m['match']} ({m['list_id']})" for m in report["counterparty_watchlist"]))
         if report.get("would_change_my_mind"):
             st.markdown("#### What would change this decision")
             for x in report["would_change_my_mind"]:

@@ -166,6 +166,36 @@ def apply_evidence_standard(report: dict[str, Any], case: CaseState) -> dict[str
     return report
 
 
+def apply_screening_standard(report: dict[str, Any], case: CaseState) -> dict[str, Any]:
+    """A sanctions referral concerns the subject and follows the screening result.
+
+    Only a strong match on the subject (name, date of birth and country) refers the
+    case; strong matches on counterparties are listed separately for the sanctions
+    team, so they are reported without being mistaken for the subject's own hit.
+    """
+    screen = next((o for o in case.observations if o.tool == "screen_watchlist" and not o.error), None)
+    hits = screen.data.get("hits", []) if screen else []
+    evidence = screen.query_ids[:2] if screen else []
+    subject = [h for h in hits if h.get("is_subject") and h.get("strength") == "strong"]
+    model_view = report.get("sanctions_referral") or {}
+    report["model_sanctions_referral"] = bool(model_view.get("needed"))
+    if subject:
+        h = subject[0]
+        reason = model_view.get("reason") if model_view.get("needed") else ""
+        report["sanctions_referral"] = {
+            "needed": True, "evidence": model_view.get("evidence") or evidence,
+            "reason": reason or f"Strong watchlist match on the subject: '{h['customer_name']}' ~ '{h['listed_name']}' "
+                                f"({h['list_id']}, {h['program']}), same date of birth and country."}
+    else:
+        report["sanctions_referral"] = {"needed": False, "evidence": [],
+                                        "reason": "No strong watchlist match on the subject."}
+    report["counterparty_watchlist"] = [
+        {"account": h["account"], "match": f"'{h['customer_name']}' ~ '{h['listed_name']}'", "list_id": h["list_id"],
+         "program": h["program"], "evidence": evidence}
+        for h in hits if not h.get("is_subject") and h.get("strength") == "strong"]
+    return report
+
+
 def rules_report(case: CaseState) -> dict[str, Any]:
     """A decision from the signals alone: the no-model baseline, and the fallback when no key is set."""
     suspicious = [s for s in case.signals if s["assessment"] == "suspicious" and s["strength"] > 0]
@@ -243,6 +273,10 @@ def report_markdown(report: dict[str, Any], case: CaseState, store=None) -> str:
         lines += ["", "## What would change this decision", ""] + [f"- {x}" for x in report["would_change_my_mind"]]
     ref = report.get("sanctions_referral", {})
     lines += ["", "## Sanctions referral", "", ("Yes: " + ref.get("reason", "")) if ref.get("needed") else "Not needed."]
+    if report.get("counterparty_watchlist"):
+        lines += ["", "## Counterparty watchlist matches (for the sanctions team)", ""]
+        lines += [f"- `{m['account']}` {m['match']} ({m['list_id']}, {m['program']}) — evidence: {', '.join(m['evidence'])}"
+                  for m in report["counterparty_watchlist"]]
     lines += ["", "## Limitations", ""] + [f"- {x}" for x in report.get("limitations", [])]
     lines += ["", "## Narrative", "", report.get("narrative", "")]
     if store is not None:
