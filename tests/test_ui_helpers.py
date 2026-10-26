@@ -37,7 +37,7 @@ def test_query_source_names_the_institution_from_the_sql():
 
 def test_engine_outcomes_read_as_plain_words():
     assert engine_outcome({"status": "completed"})[0] == "Finished"
-    assert engine_outcome({"status": "max-chunks"})[0] == "Used every step"
+    assert engine_outcome({"status": "max-chunks"})[0] == "All steps used"
     label, why = engine_outcome({"status": "errored", "error": "Model did not return valid JSON: {"})
     assert label == "Stopped early" and "not valid JSON" in why
 

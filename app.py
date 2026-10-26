@@ -465,7 +465,7 @@ with tab_trace:
         cols = st.columns(4)
         cols[0].metric("Steps run", engine.get("chunks", 0))
         cols[1].metric("Ended", outcome)
-        cols[2].metric("State carried between steps", f"{engine.get('chunk_config', {}).get('carryoverTokens', '?')} tokens max")
+        cols[2].metric("State carried, at most", f"{engine.get('chunk_config', {}).get('carryoverTokens', '?')} tokens")
         cols[3].metric("Largest prompt after step 1", f"{max(sizes[1:]):,} tokens" if len(sizes) > 1 else "n/a")
         st.caption(why)
         if sizes:

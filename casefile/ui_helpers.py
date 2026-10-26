@@ -160,7 +160,7 @@ def engine_outcome(engine: dict[str, Any]) -> tuple[str, str]:
     if status == "completed":
         return "Finished", "The planner decided it had tested enough."
     if status == "max-chunks":
-        return "Used every step", "The planner used all the follow-ups it was allowed."
+        return "All steps used", "The planner used all the follow-ups it was allowed."
     error = str(engine.get("error") or "")
     reason = "the planner's reply was cut off or was not valid JSON" if "JSON" in error else (error[:120] or "an error")
     return "Stopped early", f"Stopped because {reason}; the decision rests on the evidence gathered so far."
