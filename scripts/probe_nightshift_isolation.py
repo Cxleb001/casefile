@@ -63,6 +63,11 @@ def main() -> int:
         ("same app id, no scope header", lambda i: (f"casefile-probe2-{run}", f"casefile-probe2-{run}"), False),
     ]
     print(f"Nightshift at {base}, model {args.model}\n")
+    check = chat(base, token, args.model, "Reply only: OK", f"casefile-probe-{run}-check", True)
+    if check.startswith(("unreachable", "HTTP")):
+        print(f"Nightshift did not answer ({check}). Open Nightshift and the tunnel, check with "
+              "python scripts/check_nightshift.py, then run this again.")
+        return 1
     leaks = {}
     for name, apps, scope in setups:
         leaks[name] = 0
