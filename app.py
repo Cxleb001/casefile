@@ -196,7 +196,8 @@ with st.sidebar:
 
 # ---------------------------------------------------------------- run, inbox or case
 
-run_alert = alerts[choice] if run else next((a for a in alerts if a["alert_id"] == state.pop("run_alert", None)), None)
+queued = state.pop("run_alert", None)  # an alert the inbox asked to investigate
+run_alert = alerts[choice] if run else next((a for a in alerts if a["alert_id"] == queued), None)
 if run_alert:
     st.markdown(f"### Investigating {run_alert['alert_id']}")
     with st.status("Running the standard workup…", expanded=True) as status:
@@ -231,7 +232,7 @@ if not case_id:
             pass
     done = sum(1 for a in alerts if a["alert_id"] in reports)
     st.title("Alert inbox")
-    st.markdown(f"{len(alerts)} alerts from Institution A's transaction monitoring, {done} investigated. Select a row "
+    st.markdown(f"{len(alerts)} alerts from Institution A's transaction monitoring, {done} investigated. Click a row "
                 "to open its case file, or to investigate it: Casefile profiles the account, follows the money into "
                 "Institution B, tests innocent explanations, and writes a decision in which every claim cites the "
                 "query and rows behind it.")
@@ -239,7 +240,7 @@ if not case_id:
     frame = pd.DataFrame(inbox_rows(alerts, reports, calls))
     event = st.dataframe(
         frame, hide_index=True, width="stretch", height=min(38 + 35 * len(frame), 760),
-        on_select="rerun", selection_mode="single-row", key=f"inbox-{state.get('inbox_key', 0)}",
+        on_select="rerun", selection_mode=["single-row", "single-cell"], key=f"inbox-{state.get('inbox_key', 0)}",
         column_config={"Alert": st.column_config.TextColumn(width=80),
                        "Account": st.column_config.TextColumn(width=150),
                        "Raised": st.column_config.TextColumn(width=130),
@@ -248,7 +249,8 @@ if not case_id:
                        "Typology": st.column_config.TextColumn(width=110),
                        "Claims verified": st.column_config.TextColumn("Verified", width=75),
                        "Analyst": st.column_config.TextColumn("Analyst's call", width=170)})
-    rows = event.selection.rows if event and event.selection else []
+    picked = event.selection if event else None  # a row's box, or any cell in the row
+    rows = (list(picked.rows) or [cell[0] for cell in getattr(picked, "cells", [])]) if picked else []
     if rows:
         alert = alerts[rows[0]]
         if alert["alert_id"] in latest:

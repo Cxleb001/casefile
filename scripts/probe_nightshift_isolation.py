@@ -52,11 +52,23 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--model", default="nvidia/nemotron-3.5-lightning-30b-a3b")
     parser.add_argument("--repeats", type=int, default=3)
+    parser.add_argument("--history", action="store_true",
+                        help="instead, ask fresh requests whether they can see earlier content, under the app id "
+                             "Casefile uses (casefile) and under a brand-new one")
     args = parser.parse_args()
     settings = get_settings()
     base = normalize_runtime_url(os.environ.get("METERLESS_BASE_URL") or settings.llm_base_url)
     token = os.environ.get("METERLESS_TOKEN") or os.environ.get("METERLESS_RUNTIME_TOKEN") or ""
     run = secrets.token_hex(3)
+    if args.history:
+        question = ("Before this message, can you see any other requests, documents or earlier conversation? If yes, "
+                    "say in one sentence what they were about. If not, reply exactly: NONE")
+        print(f"Nightshift at {base}, model {args.model}\n")
+        for app in ("casefile", f"casefile-fresh-{run}"):
+            for i in range(args.repeats):
+                print(f"  app id {app:<24} try {i + 1}: {chat(base, token, args.model, question, app, True)!r}")
+        print("\nAnything but NONE under 'casefile' while the fresh id says NONE: context carried between requests.")
+        return 0
     setups = [
         ("same app id, scope header", lambda i: (f"casefile-probe-{run}", f"casefile-probe-{run}"), True),
         ("new app id for request 2", lambda i: (f"casefile-probe-{run}-a{i}", f"casefile-probe-{run}-b{i}"), True),
