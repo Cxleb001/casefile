@@ -217,3 +217,14 @@ def parse_json(text: str) -> Any:
             except json.JSONDecodeError:
                 continue
     raise LLMError(f"Model did not return valid JSON: {text[:300]}")
+
+
+def make_llm(settings: Settings | None = None, on_call: Callable[[ChatResult, str | None], None] | None = None):
+    """The live client, or in sample mode the recorded answers bundled in sample/recordings."""
+    settings = settings or get_settings()
+    if settings.sample_mode:
+        from .config import SAMPLE_DIR
+        from .replay import ReplayLLM
+
+        return ReplayLLM(SAMPLE_DIR / "recordings", settings=settings, on_call=on_call)
+    return LLM(settings, on_call=on_call)

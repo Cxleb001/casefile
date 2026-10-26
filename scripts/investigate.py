@@ -54,9 +54,9 @@ def main() -> int:
     store = EvidenceStore()
     llm = None
     if not args.rules:
-        from casefile.llm import LLM
+        from casefile.llm import make_llm
 
-        llm = LLM(settings, on_call=store.record_llm_call)
+        llm = make_llm(settings, on_call=store.record_llm_call)  # sample mode: the recorded answers
 
     alerts = load_alerts() if args.all else [find_alert(args.alert_id)]
     for alert in alerts:

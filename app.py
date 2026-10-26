@@ -42,9 +42,9 @@ def resources():
     store = EvidenceStore()
     llm, llm_error = None, None
     try:
-        from casefile.llm import LLM
+        from casefile.llm import make_llm
 
-        llm = LLM(settings, on_call=store.record_llm_call)
+        llm = make_llm(settings, on_call=store.record_llm_call)  # sample mode: the recorded answers
     except Exception as error:  # no key yet: rules-only mode still works
         llm_error = str(error)
     return settings, backend, store, llm, llm_error
@@ -71,11 +71,16 @@ def load_saved(case_id: str) -> dict:
 with st.sidebar:
     st.markdown("## 🗂️ Casefile")
     st.caption("Follows the money across institutions through Zetaris; every claim cites the query behind it.")
+    if settings.sample_mode:
+        st.info("**Sample mode.** A slice of the real data, and the model answers recorded from a run through "
+                "Meterless Nightshift, replayed in order. No Zetaris, Nightshift or keys needed.")
     st.markdown(f"**Data:** `{settings.data_backend}`" + (" (Zetaris federation)" if settings.data_backend == "zetaris"
+                                                           else " (bundled sample)" if settings.sample_mode
                                                            else " (local stand-in)"))
     if llm is not None:
-        st.markdown(f"**Models** ({settings.llm_provider})")
-        for step, model in settings.models.items():
+        st.markdown("**Models** (recorded via Nightshift)" if settings.sample_mode
+                    else f"**Models** ({settings.llm_provider})")
+        for step, model in getattr(llm, "models", None).items() if settings.sample_mode else settings.models.items():
             st.caption(f"{step}: `{model}`")
     else:
         st.warning("No model key set: rules-only decisions. Add a key to `.env` for the full agent.")
@@ -84,7 +89,9 @@ with st.sidebar:
     labels = [f"{a['alert_id']} · {a['bank_id']}:{a['account']} · {a['rules'].replace('|', ', ')}" for a in alerts]
     choice = st.selectbox("Alert queue", range(len(alerts)), format_func=lambda i: labels[i])
     use_model = st.toggle("Use the model", value=llm is not None, disabled=llm is None)
-    steps = st.slider("Follow-up actions", 0, 10, 6, disabled=not use_model)
+    # A replay must allow the same number of follow-ups as the recorded run (run_eval's default, 8).
+    steps = st.slider("Follow-up actions", 0, 10, 8 if settings.sample_mode else 6,
+                      disabled=not use_model or settings.sample_mode)
     run = st.button("Investigate", type="primary", width="stretch")
 
     st.divider()

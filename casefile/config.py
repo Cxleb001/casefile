@@ -14,11 +14,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Read .env first, so the folder settings below can come from it too (the environment still wins).
+load_dotenv(PROJECT_ROOT / ".env", override=False)
+
 DATA_DIR = PROJECT_ROOT / "data"
+# Sample mode: a small slice of the real data and recorded model answers, bundled in sample/, so the
+# whole agent runs with no Zetaris, no Nightshift and no keys. See sample/README.md.
+SAMPLE_DIR = PROJECT_ROOT / "sample"
+SAMPLE_MODE = os.environ.get("SAMPLE_MODE", "").strip().lower() in {"1", "true", "yes", "on"}
 # Overridable so a second dataset (e.g. a tuning batch) can be evaluated without moving files.
-PREPARED_DIR = Path(os.environ.get("CASEFILE_PREPARED_DIR") or DATA_DIR / "prepared").resolve()
-EVAL_DIR = Path(os.environ.get("CASEFILE_EVAL_DIR") or PROJECT_ROOT / "eval").resolve()
-RUNS_DIR = PROJECT_ROOT / "runs"
+PREPARED_DIR = Path(os.environ.get("CASEFILE_PREPARED_DIR")
+                    or (SAMPLE_DIR / "data" if SAMPLE_MODE else DATA_DIR / "prepared")).resolve()
+EVAL_DIR = Path(os.environ.get("CASEFILE_EVAL_DIR") or (SAMPLE_DIR if SAMPLE_MODE else PROJECT_ROOT / "eval")).resolve()
+RUNS_DIR = PROJECT_ROOT / "runs" / "sample" if SAMPLE_MODE else PROJECT_ROOT / "runs"
 
 # Logical table keys -> the environment variable that can override the name
 # Zetaris knows the table by.
@@ -113,6 +121,8 @@ class Settings:
     models: dict[str, str] = field(default_factory=dict)
     thinking: dict[str, str] = field(default_factory=dict)
 
+    sample_mode: bool = False
+
     pg_url: str = ""
     s3_bucket: str = ""
     s3_prefix: str = "casefile"
@@ -157,7 +167,7 @@ def get_settings() -> Settings:
             raise ValueError(f"CASEFILE_THINKING_{step.upper()} must be off, medium or on, got {level!r}")
         thinking[step] = level
 
-    backend = _env("CASEFILE_DATA_BACKEND", "local").lower()
+    backend = "local" if SAMPLE_MODE else _env("CASEFILE_DATA_BACKEND", "local").lower()
     if backend not in {"local", "zetaris"}:
         raise ValueError(f"CASEFILE_DATA_BACKEND must be 'local' or 'zetaris', got {backend!r}")
 
@@ -187,6 +197,7 @@ def get_settings() -> Settings:
         llm_api_key=api_key,
         models=models,
         thinking=thinking,
+        sample_mode=SAMPLE_MODE,
         pg_url=_env("PG_URL"),
         s3_bucket=_env("S3_BUCKET"),
         s3_prefix=_env("S3_PREFIX", "casefile").strip("/"),

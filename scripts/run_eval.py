@@ -110,9 +110,11 @@ def main() -> int:
     store = EvidenceStore(out_dir / "evidence.duckdb")
     llm = None
     if not args.rules:
-        from casefile.llm import LLM
+        from casefile.llm import make_llm
 
-        llm = LLM(settings, on_call=store.record_llm_call)
+        llm = make_llm(settings, on_call=store.record_llm_call)  # sample mode: the recorded answers
+        if getattr(llm, "record_dir", None):
+            llm.record_dir = out_dir / "llm"  # the run's model calls travel with its results
 
     alerts = load_alerts()
     if args.skip_accounts_in:
@@ -187,6 +189,9 @@ def main() -> int:
         failed = ", ".join(r["alert_id"] for r in rows if r.get("data_errors"))
         print(f"\nWARNING: {summary['data_failures']} case(s) hit data errors ({failed}); their decisions rest on "
               "incomplete data. Fix the cause and rerun before quoting these numbers.")
+    if hasattr(llm, "mismatches"):
+        print(f"\nreplay: {llm.exact} recorded answers matched their request exactly, "
+              f"{len(llm.mismatches)} matched by order only")
     print(f"\nconfusion: {summary['confusion']}; results: {out_dir / 'results.json'}")
     store.close()
     backend.close()
