@@ -36,7 +36,7 @@ The raw files are **not** in this repository; `scripts/codespace/get_data.sh` do
 | `../eval/alerts.csv` | 30 | What the agent is given |
 | `../eval/labels.csv` | 30 | Ground truth: **never** committed, read only by `scripts/run_eval.py` after each case |
 
-A second, separate batch was used for tuning: 80 alerts with `--alerts 80 --seed 7`, of which 16 share an account with the test set and are skipped (`run_eval.py --skip-accounts-in eval/alerts.csv`), leaving 64. The test set was not used to choose any threshold or prompt.
+A second, separate batch was used for tuning: 80 alerts with `--alerts 80 --seed 7`, of which 16 share an account with the test set and are skipped (`run_eval.py --skip-accounts-in eval/alerts.csv`), leaving 64. No threshold was chosen on the test set. One caveat, stated plainly: before the tuning batch existed, the model prompts were first calibrated on the first five test alerts (ALR-001 to ALR-005), so the README reports scores on all 30 alerts and on the 25 that were never looked at.
 
 ## How it is registered in Zetaris
 
