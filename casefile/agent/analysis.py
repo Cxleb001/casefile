@@ -456,7 +456,7 @@ def channel_signal(case: CaseState, subject: str) -> dict[str, Any] | None:
         by_format[e.payment_format] += 1
         fx += e.payment_currency != e.receiving_currency
     risky = sum(n for f, n in by_format.items() if f in LAUNDERING_FORMATS)
-    mix = ", ".join(f"{f} {n}" for f, n in sorted(by_format.items(), key=lambda kv: -kv[1]))
+    mix = ", ".join(f"{f} {n}" for f, n in sorted(by_format.items(), key=lambda kv: (-kv[1], kv[0])))
     return _signal(
         "channels",
         f"Payment formats: {mix}. {risky / len(edges):.0%} ACH/wire/cash/bitcoin; {fx / len(edges):.0%} change currency.",
@@ -492,7 +492,7 @@ def counterparty_mix_signal(case: CaseState, subject: str) -> dict[str, Any] | N
         types[str(case.accounts.get(c, {}).get("customer_type") or "unknown")] += 1
     if not cps:
         return None
-    mix = ", ".join(f"{t} {n}" for t, n in sorted(types.items(), key=lambda kv: -kv[1]))
+    mix = ", ".join(f"{t} {n}" for t, n in sorted(types.items(), key=lambda kv: (-kv[1], kv[0])))  # ties: by name
     subject_type = case.accounts.get(subject, {}).get("customer_type")
     individuals = types.get("Individual", 0) / len(cps)
     payroll_like = subject_type in {"Corporation", "Partnership"} and individuals >= 0.7 and len(out_edges) >= 5

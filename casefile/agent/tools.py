@@ -383,7 +383,7 @@ LIMIT {limit}
                 break
             # Follow specific accounts, not hubs: a big merchant's onward payments say nothing
             # about this money and would swamp the trace.
-            qids.extend(self._account_degrees(sorted(candidates, key=lambda k: -weight.get(k, 0.0))[:400],
+            qids.extend(self._account_degrees(sorted(candidates, key=lambda k: (-weight.get(k, 0.0), k))[:400],
                                               f"counterparty counts before hop {hop} from {origin}"))
             cut = self._hub_cut(candidates)
             hubs = [k for k in candidates if (self.case.accounts.get(k, {}).get("degree") or 0) >= cut]
@@ -391,7 +391,7 @@ LIMIT {limit}
             candidates = [k for k in candidates if k not in set(hubs)]
             if not candidates:
                 break
-            candidates.sort(key=lambda k: -weight.get(k, 0.0))
+            candidates.sort(key=lambda k: (-weight.get(k, 0.0), k))
             chosen = candidates[:max_frontier]
             visited.update(chosen)
             accounts = in_list(split_key(k)[1] for k in chosen)
@@ -449,7 +449,7 @@ LIMIT {limit}
         for i, layer in enumerate(layers, start=1):
             ends = {(e.dst if direction == "out" else e.src) for e in layer}
             inst = {}
-            for k in ends:
+            for k in sorted(ends):  # sorted: a set's order changes between processes, and prompts should not
                 label = self.case.institution_of(k) or "unknown"
                 inst[label] = inst.get(label, 0) + 1
             hop_rows.append({"hop": i, "transactions": len(layer), "accounts": len(ends),
@@ -463,7 +463,7 @@ LIMIT {limit}
                 end, via = (e.dst, e.src) if direction == "out" else (e.src, e.dst)
                 if end != origin:
                     feeders.setdefault(end, set()).add(via)
-            convergence = sorted(((k, len(v)) for k, v in feeders.items() if len(v) >= 2), key=lambda x: -x[1])[:10]
+            convergence = sorted(((k, len(v)) for k, v in feeders.items() if len(v) >= 2), key=lambda x: (-x[1], x[0]))[:10]
 
         word = "sent" if direction == "out" else "received"
         lines = [f"Traced money {word} by {origin} over {len(layers)} hop(s), window {int(window.total_seconds() // 3600)}h:"]
@@ -763,8 +763,8 @@ LIMIT {limit}
             for node in (e.src, e.dst):
                 if node != k:
                     links[node] = links.get(node, 0) + 1
-        ranked = sorted(direct, key=lambda n: -links.get(n, 0)) + \
-            sorted((n for n in links if n not in direct and links[n] >= 2), key=lambda n: -links[n])
+        ranked = sorted(direct, key=lambda n: (-links.get(n, 0), n)) + \
+            sorted((n for n in links if n not in direct and links[n] >= 2), key=lambda n: (-links[n], n))
         degree_qids = self._account_degrees([k] + ranked[:399], f"counterparty counts for accounts around {k}")
         degree_qids += self._close_rings(k)
 
