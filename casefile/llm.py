@@ -13,14 +13,17 @@ logged, which is where the "which model ran which step" table comes from.
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable
 
 from openai import BadRequestError, OpenAI
 
-from .config import Settings, get_settings
+from .config import RUNS_DIR, Settings, get_settings
+from .replay import record_call
 
 _THINK = re.compile(r"<think>(.*?)</think>", re.DOTALL | re.IGNORECASE)
 _FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
@@ -66,6 +69,10 @@ class LLM:
         )
         self.on_call = on_call
         self._no_thinking_control: set[str] = set()  # models that rejected chat_template_kwargs
+        # Every request and answer is kept in runs/llm/<case_id>.jsonl: the trace behind each decision,
+        # and what sample mode replays without a key. CASEFILE_RECORD_LLM=false turns it off.
+        recording = os.environ.get("CASEFILE_RECORD_LLM", "true").strip().lower() not in {"0", "false", "no", "off"}
+        self.record_dir: Path | None = RUNS_DIR / "llm" if recording else None
 
     def model_for(self, step: str) -> str:
         try:
@@ -137,7 +144,11 @@ class LLM:
                     kwargs["extra_body"] = body
                 response = self.client.chat.completions.create(**kwargs)
         except Exception as error:  # surface the provider's own message
-            raise LLMError(f"{self.settings.llm_provider} call for step '{step}' ({model}) failed: {error}") from error
+            message = f"{self.settings.llm_provider} call for step '{step}' ({model}) failed: {error}"
+            if self.record_dir:
+                record_call(self.record_dir, case_id, messages, None, {"temperature": temperature, "max_tokens": max_tokens},
+                            step=step, provider=self.settings.llm_provider, model=model, error=message)
+            raise LLMError(message) from error
         latency_ms = int((time.perf_counter() - started) * 1000)
 
         if not response.choices:
@@ -178,6 +189,10 @@ class LLM:
             completion_tokens=getattr(usage, "completion_tokens", None) if usage else None,
             raw=response,
         )
+        if self.record_dir:
+            record_call(self.record_dir, case_id, messages, result,
+                        {"temperature": temperature, "max_tokens": max_tokens,
+                         "chat_template_kwargs": body.get("chat_template_kwargs")})
         if self.on_call:
             self.on_call(result, case_id)
         return result

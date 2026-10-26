@@ -7,6 +7,7 @@ its verdict back onto the claim.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
@@ -77,13 +78,29 @@ class EvidenceStore:
         self.con = duckdb.connect(str(self.path))
         for statement in _SCHEMA:
             self.con.execute(statement)
+        self._issued: dict[str, int] = {}
+
+    def _query_id(self, case_id: str | None) -> str:
+        """The n-th query of a case always gets the same id, so a recorded run can be replayed exactly
+        (the model's answers cite these ids). Queries outside a case get a random id."""
+        if not case_id:
+            return "Q-" + uuid.uuid4().hex[:10]
+        n = self._issued.get(case_id, 0)
+        self._issued[case_id] = n + 1
+        return "Q-" + hashlib.sha1(f"{case_id}#{n}".encode()).hexdigest()[:10]
+
+    def forget_case(self, case_id: str) -> None:
+        """Drop everything stored for a case, before running it again under the same id."""
+        for table in ("queries", "claims", "llm_calls"):
+            self.con.execute(f"DELETE FROM {table} WHERE case_id = ?", [case_id])
+        self._issued.pop(case_id, None)
 
     # -- writes ---------------------------------------------------------------
 
     def record_query(self, case_id: str | None, result=None, *, sql: str = "", purpose: str = "",
                      backend: str = "", error: str | None = None) -> str:
         """Store a QueryResult (or a failed query) and return its id."""
-        query_id = "Q-" + uuid.uuid4().hex[:10]
+        query_id = self._query_id(case_id)
         if result is not None:
             self.con.execute(
                 "INSERT INTO queries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

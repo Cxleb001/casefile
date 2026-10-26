@@ -43,7 +43,11 @@ def run_case(alert: dict[str, Any], *, backend, store, settings, llm=None, max_s
              case_id: str | None = None) -> dict[str, Any]:
     """Investigate one alert end to end and save the case file. ``llm=None`` runs rules-only."""
     started = time.perf_counter()
-    case_id = case_id or f"{alert['alert_id']}-{datetime.now():%Y%m%d-%H%M%S}"
+    # A replay (sample mode) reuses the recorded case id, so the evidence ids match the recorded answers.
+    replayed = getattr(llm, "case_id_for", None)
+    case_id = case_id or (replayed(alert["alert_id"]) if replayed else None) \
+        or f"{alert['alert_id']}-{datetime.now():%Y%m%d-%H%M%S}"
+    store.forget_case(case_id)  # running a case id again replaces it instead of colliding with it
     case = CaseState(case_id, alert)
     toolbox = Toolbox(backend, store, settings, case)
 

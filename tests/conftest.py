@@ -24,6 +24,11 @@ sys.path.insert(0, str(ROOT))
 
 from casefile.config import get_settings  # noqa: E402
 
+# Tests never write model recordings into runs/; the replay tests point recording at a temp folder.
+import os  # noqa: E402
+
+os.environ["CASEFILE_RECORD_LLM"] = "false"
+
 T0 = datetime(2022, 9, 3, 9, 0)
 
 
