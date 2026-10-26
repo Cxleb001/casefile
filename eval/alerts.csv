@@ -1,31 +1,31 @@
 alert_id,institution,bank_id,account,alert_ts,rules,trigger
-ALR-001,A,54557,415B39203,2022-09-10 22:33,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 70 distinct counterparties (rule: 27+); received funds from 49 distinct counterparties (rule: 27+); pass-through activity: 49 senders in, 70 recipients out (rule: 24+ each way); 62 cross-currency transfers (rule: 39+)"
-ALR-002,A,54557,D71BDCFD2,2022-09-10 18:58,FAN_OUT|PASS_THROUGH,"sent funds to 28 distinct counterparties (rule: 27+); pass-through activity: 24 senders in, 28 recipients out (rule: 24+ each way)"
-ALR-003,A,54557,8CF5F6579,2022-09-10 07:57,FAN_OUT|PASS_THROUGH,"sent funds to 34 distinct counterparties (rule: 27+); pass-through activity: 24 senders in, 34 recipients out (rule: 24+ each way)"
-ALR-004,A,54557,D60B0C8B4,2022-09-10 18:28,FAN_OUT,sent funds to 27 distinct counterparties (rule: 27+)
-ALR-005,A,54557,CD41A6D72,2022-09-10 23:38,FAN_OUT|FAN_IN|PASS_THROUGH,"sent funds to 36 distinct counterparties (rule: 27+); received funds from 34 distinct counterparties (rule: 27+); pass-through activity: 34 senders in, 36 recipients out (rule: 24+ each way)"
-ALR-006,A,54557,54F4335B0,2022-09-10 21:55,FAN_OUT|PASS_THROUGH,"sent funds to 28 distinct counterparties (rule: 27+); pass-through activity: 24 senders in, 28 recipients out (rule: 24+ each way)"
-ALR-007,A,54557,A690C2F8D,2022-09-10 23:22,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 33 distinct counterparties (rule: 27+); received funds from 33 distinct counterparties (rule: 27+); pass-through activity: 33 senders in, 33 recipients out (rule: 24+ each way); 60 cross-currency transfers (rule: 39+)"
-ALR-008,A,54557,18A9CF415,2022-09-10 21:45,FX_CHURN,52 cross-currency transfers (rule: 39+)
-ALR-009,A,54557,BDEECCD84,2022-09-10 15:25,FAN_OUT|PASS_THROUGH,"sent funds to 30 distinct counterparties (rule: 27+); pass-through activity: 24 senders in, 30 recipients out (rule: 24+ each way)"
-ALR-010,A,54557,DB02EA199,2022-09-10 23:13,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 41 distinct counterparties (rule: 27+); received funds from 44 distinct counterparties (rule: 27+); pass-through activity: 44 senders in, 41 recipients out (rule: 24+ each way); 86 cross-currency transfers (rule: 39+)"
-ALR-011,A,54557,4E63A600C,2022-09-10 22:22,FX_CHURN,45 cross-currency transfers (rule: 39+)
-ALR-012,A,54557,6DA2FE95A,2022-09-10 20:03,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 36 distinct counterparties (rule: 27+); received funds from 48 distinct counterparties (rule: 27+); pass-through activity: 48 senders in, 36 recipients out (rule: 24+ each way); 89 cross-currency transfers (rule: 39+)"
-ALR-013,A,54557,9C265E7C4,2022-09-10 22:31,FX_CHURN,48 cross-currency transfers (rule: 39+)
-ALR-014,A,54557,4CE7FD690,2022-09-10 23:30,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 41 distinct counterparties (rule: 27+); received funds from 57 distinct counterparties (rule: 27+); pass-through activity: 57 senders in, 41 recipients out (rule: 24+ each way); 51 cross-currency transfers (rule: 39+)"
-ALR-015,A,54557,A069BED27,2022-09-10 19:28,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 48 distinct counterparties (rule: 27+); received funds from 50 distinct counterparties (rule: 27+); pass-through activity: 50 senders in, 48 recipients out (rule: 24+ each way); 100 cross-currency transfers (rule: 39+)"
-ALR-016,A,54557,F1AC032B2,2022-09-10 17:05,FAN_IN|FX_CHURN,received funds from 35 distinct counterparties (rule: 27+); 46 cross-currency transfers (rule: 39+)
-ALR-017,A,54557,B3C87CFFA,2022-09-10 21:30,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 39 distinct counterparties (rule: 27+); received funds from 51 distinct counterparties (rule: 27+); pass-through activity: 51 senders in, 39 recipients out (rule: 24+ each way); 93 cross-currency transfers (rule: 39+)"
-ALR-018,A,54557,0FB9C46BB,2022-09-10 22:47,FAN_IN|FX_CHURN,received funds from 29 distinct counterparties (rule: 27+); 50 cross-currency transfers (rule: 39+)
-ALR-019,A,54557,139CD63F3,2022-09-10 22:52,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 34 distinct counterparties (rule: 27+); received funds from 38 distinct counterparties (rule: 27+); pass-through activity: 38 senders in, 34 recipients out (rule: 24+ each way); 69 cross-currency transfers (rule: 39+)"
-ALR-020,A,54557,778D58796,2022-09-10 16:04,FAN_OUT|FAN_IN|PASS_THROUGH,"sent funds to 34 distinct counterparties (rule: 27+); received funds from 29 distinct counterparties (rule: 27+); pass-through activity: 29 senders in, 34 recipients out (rule: 24+ each way)"
-ALR-021,A,54557,836766B8F,2022-09-10 21:39,FX_CHURN,39 cross-currency transfers (rule: 39+)
-ALR-022,A,54557,00C9AD01F,2022-09-10 13:55,FX_CHURN,42 cross-currency transfers (rule: 39+)
-ALR-023,A,54557,38006F767,2022-09-10 22:04,FX_CHURN,39 cross-currency transfers (rule: 39+)
-ALR-024,A,54557,91D737583,2022-09-10 19:43,FAN_OUT|FX_CHURN,sent funds to 29 distinct counterparties (rule: 27+); 46 cross-currency transfers (rule: 39+)
-ALR-025,A,54557,49E5311B4,2022-09-10 23:49,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 64 distinct counterparties (rule: 27+); received funds from 79 distinct counterparties (rule: 27+); pass-through activity: 79 senders in, 64 recipients out (rule: 24+ each way); 148 cross-currency transfers (rule: 39+)"
-ALR-026,A,54557,FB150BE9B,2022-09-10 23:30,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 58 distinct counterparties (rule: 27+); received funds from 50 distinct counterparties (rule: 27+); pass-through activity: 50 senders in, 58 recipients out (rule: 24+ each way); 51 cross-currency transfers (rule: 39+)"
-ALR-027,A,54557,884716E7D,2022-09-10 21:48,FAN_OUT|FAN_IN|PASS_THROUGH,"sent funds to 28 distinct counterparties (rule: 27+); received funds from 32 distinct counterparties (rule: 27+); pass-through activity: 32 senders in, 28 recipients out (rule: 24+ each way)"
-ALR-028,A,54557,E81DCCB53,2022-09-10 15:43,FX_CHURN,46 cross-currency transfers (rule: 39+)
-ALR-029,A,54557,F01831AA5,2022-09-10 22:34,FX_CHURN,49 cross-currency transfers (rule: 39+)
-ALR-030,A,54557,83897A146,2022-09-10 23:09,FAN_OUT|FAN_IN|PASS_THROUGH|FX_CHURN,"sent funds to 42 distinct counterparties (rule: 27+); received funds from 52 distinct counterparties (rule: 27+); pass-through activity: 52 senders in, 42 recipients out (rule: 24+ each way); 95 cross-currency transfers (rule: 39+)"
+ALR-001,A,1688,801703570,2022-09-10 16:47,PASS_THROUGH,"pass-through activity: 5 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-002,A,21749,800B649E0,2022-09-10 17:49,PASS_THROUGH,"pass-through activity: 5 senders in, 6 recipients out (rule: 5+ each way)"
+ALR-003,A,142574,8128EAEF0,2022-09-09 00:16,FAN_IN,received funds from 55 distinct counterparties (rule: 37+)
+ALR-004,A,222,811B83280,2022-09-17 02:45,PASS_THROUGH,"pass-through activity: 5 senders in, 10 recipients out (rule: 5+ each way)"
+ALR-005,A,21381,8035BA3F0,2022-09-10 19:50,PASS_THROUGH,"pass-through activity: 6 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-006,A,11,8001D5B50,2022-09-13 05:33,PASS_THROUGH,"pass-through activity: 16 senders in, 7 recipients out (rule: 5+ each way)"
+ALR-007,A,3149,80145D1D0,2022-09-09 18:10,PASS_THROUGH,"pass-through activity: 5 senders in, 7 recipients out (rule: 5+ each way)"
+ALR-008,A,11157,8010D6C80,2022-09-10 22:48,PASS_THROUGH,"pass-through activity: 5 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-009,A,1068,8011F0870,2022-09-10 22:20,PASS_THROUGH,"pass-through activity: 8 senders in, 6 recipients out (rule: 5+ each way)"
+ALR-010,A,1522,80234A500,2022-09-10 19:59,FAN_OUT,sent funds to 17 distinct counterparties (rule: 16+)
+ALR-011,A,23,8001B2240,2022-09-10 05:27,PASS_THROUGH,"pass-through activity: 6 senders in, 8 recipients out (rule: 5+ each way)"
+ALR-012,A,223,811A00890,2022-09-11 12:14,PASS_THROUGH,"pass-through activity: 6 senders in, 8 recipients out (rule: 5+ each way)"
+ALR-013,A,7,806197740,2022-09-10 08:06,PASS_THROUGH,"pass-through activity: 5 senders in, 8 recipients out (rule: 5+ each way)"
+ALR-014,A,119,811DCA9B0,2022-09-17 09:39,PASS_THROUGH,"pass-through activity: 6 senders in, 6 recipients out (rule: 5+ each way)"
+ALR-015,A,13029,804CA7210,2022-09-11 11:41,FAN_IN,received funds from 53 distinct counterparties (rule: 37+)
+ALR-016,A,1467,800E4EEB0,2022-09-10 00:24,PASS_THROUGH,"pass-through activity: 5 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-017,A,11,80099E900,2022-09-10 21:54,PASS_THROUGH,"pass-through activity: 7 senders in, 6 recipients out (rule: 5+ each way)"
+ALR-018,A,24,803845450,2022-09-10 17:55,PASS_THROUGH,"pass-through activity: 5 senders in, 8 recipients out (rule: 5+ each way)"
+ALR-019,A,12963,8011C4BC0,2022-09-10 00:22,PASS_THROUGH,"pass-through activity: 5 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-020,A,11,80012D760,2022-09-10 05:04,FAN_OUT,sent funds to 16 distinct counterparties (rule: 16+)
+ALR-021,A,2843,800A88540,2022-09-10 09:53,PASS_THROUGH,"pass-through activity: 5 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-022,A,214615,8075AC7C0,2022-09-10 18:53,FAN_OUT|PASS_THROUGH,"sent funds to 16 distinct counterparties (rule: 16+); pass-through activity: 15 senders in, 16 recipients out (rule: 5+ each way)"
+ALR-023,A,7,807C423D0,2022-09-10 18:16,PASS_THROUGH,"pass-through activity: 6 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-024,A,3229,8017733A0,2022-09-10 04:58,PASS_THROUGH,"pass-through activity: 6 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-025,A,1299,8009D3030,2022-09-10 04:29,PASS_THROUGH,"pass-through activity: 6 senders in, 7 recipients out (rule: 5+ each way)"
+ALR-026,A,2915,800AEDA60,2022-09-11 14:08,PASS_THROUGH,"pass-through activity: 5 senders in, 12 recipients out (rule: 5+ each way)"
+ALR-027,A,3144,80221EBA0,2022-09-10 23:17,PASS_THROUGH,"pass-through activity: 6 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-028,A,3,801AAC500,2022-09-10 18:43,FAN_OUT,sent funds to 16 distinct counterparties (rule: 16+)
+ALR-029,A,16354,802B4F370,2022-09-10 11:50,PASS_THROUGH,"pass-through activity: 6 senders in, 7 recipients out (rule: 5+ each way)"
+ALR-030,A,11,800924840,2022-09-13 16:32,PASS_THROUGH,"pass-through activity: 15 senders in, 10 recipients out (rule: 5+ each way)"

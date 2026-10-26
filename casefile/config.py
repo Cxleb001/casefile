@@ -63,12 +63,13 @@ DEFAULT_MODELS = {
         "plan": "nvidia/nemotron-3.5-lightning-30b-a3b",
         "verify": "nvidia/nemotron-3-ultra-550b-a55b",
     },
-    # Nightshift model ids are routing modes, not models: the runtime picks from the fleet it has
-    # (local lanes, or cloud models such as NVIDIA's once their key is added in Nightshift).
+    # Through Nightshift (the default provider): NVIDIA's models by id, once the NVIDIA key is added in
+    # Nightshift. Nightshift's routing modes also work here (e.g. meterless/auto, meterless/text.deep),
+    # letting the runtime pick from its fleet instead.
     "meterless": {
-        "fast": "meterless/text.fast",
-        "plan": "meterless/text.fast",
-        "verify": "meterless/text.deep",
+        "fast": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "plan": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "verify": "nvidia/nemotron-3-ultra-550b-a55b",
     },
 }
 
@@ -141,7 +142,7 @@ class Settings:
 def get_settings() -> Settings:
     load_dotenv(PROJECT_ROOT / ".env", override=False)
 
-    provider = _env("CASEFILE_LLM_PROVIDER", "nvidia").lower()
+    provider = _env("CASEFILE_LLM_PROVIDER", "meterless").lower()  # Meterless Nightshift is the primary provider
     if provider not in DEFAULT_MODELS:
         raise ValueError(
             f"CASEFILE_LLM_PROVIDER must be one of {sorted(DEFAULT_MODELS)}, got {provider!r}"

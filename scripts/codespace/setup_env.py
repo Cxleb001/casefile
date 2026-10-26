@@ -68,7 +68,7 @@ def nightshift() -> None:
     if not token:
         print("  No token given; nothing changed.")
         return
-    # Empty model lines fall back to Nightshift routing modes (meterless/text.fast, meterless/text.deep).
+    # Empty model lines fall back to NVIDIA Nemotron through Nightshift (config.DEFAULT_MODELS['meterless']).
     set_values({"CASEFILE_LLM_PROVIDER": "meterless", "METERLESS_BASE_URL": url, "METERLESS_TOKEN": token,
                 "CASEFILE_MODEL_FAST": "", "CASEFILE_MODEL_PLAN": "", "CASEFILE_MODEL_REPORT": "",
                 "CASEFILE_MODEL_VERIFY": "", "NVIDIA_API_KEY": ""})

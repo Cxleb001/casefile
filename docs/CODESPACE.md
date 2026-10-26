@@ -15,17 +15,18 @@ Each step ends with what you should see. If you don't see it, copy the terminal 
 
 **You should see** a VS Code-style editor in your browser, with the file list on the left and a terminal at the bottom. If there's no terminal, use **☰ menu → Terminal → New Terminal**.
 
-### 2. Add your keys (2 minutes)
+### 2. Connect the models through Meterless Nightshift (10 minutes)
 
-Run:
+Casefile's AI provider is Meterless Nightshift, running on your laptop with your NVIDIA key stored inside it. Follow [NIGHTSHIFT.md](NIGHTSHIFT.md): install Nightshift, add the NVIDIA key in Nightshift, open the tunnel from your laptop, then run:
 
 ```bash
-python scripts/codespace/setup_env.py --models
+python scripts/codespace/setup_env.py --nightshift
+python scripts/check_nightshift.py
 ```
 
-Paste your NVIDIA key (from <https://build.nvidia.com/settings/api-keys>) when asked. It's hidden as you type.
+**You should see** `status: ONLINE` and a `[PASS]` line naming the NVIDIA model that answered.
 
-**You should see** `saved NVIDIA_API_KEY`.
+> No models yet? Skip this step: everything up to step 8 works rules-only, and `SAMPLE_MODE=true` replays a recorded run (see [sample/README.md](../sample/README.md)). For development you can also call NVIDIA directly with `python scripts/codespace/setup_env.py --models`.
 
 ### 3. Download the real data (10 minutes)
 
