@@ -1,0 +1,37 @@
+# Casefile's look in Streamlit. The fonts are served from static/fonts, so the app looks the same offline.
+[client]
+toolbarMode = "viewer"
+
+[server]
+enableStaticServing = true
+
+[[theme.fontFaces]]
+family = "Public Sans"
+url = "app/static/fonts/PublicSans.woff2"
+weight = "100 900"
+
+[[theme.fontFaces]]
+family = "Source Serif 4"
+url = "app/static/fonts/SourceSerif4.woff2"
+weight = "200 900"
+
+[[theme.fontFaces]]
+family = "IBM Plex Mono"
+url = "app/static/fonts/IBMPlexMono.woff2"
+weight = "400"
+
+[theme]
+base = "light"
+primaryColor = "#23395B"
+backgroundColor = "#F4F6F9"
+secondaryBackgroundColor = "#E8ECF2"
+textColor = "#18263A"
+borderColor = "#D5DCE5"
+baseRadius = "small"
+font = "Public Sans, sans-serif"
+headingFont = "Source Serif 4, serif"
+codeFont = "IBM Plex Mono, monospace"
+showSidebarBorder = true
+
+[theme.sidebar]
+backgroundColor = "#E8ECF2"

@@ -105,8 +105,13 @@ class ReplayLLM:
 
     # The recorded case id is reused, so evidence ids come out the same as in the recording.
     def case_id_for(self, alert_id: str) -> str | None:
+        """The recorded case id for an alert. Asking starts that case's replay from its first answer again,
+        so the same alert can be investigated more than once in one session."""
         matches = sorted(c for c in self.recordings if alert_of(c) == alert_id)
-        return matches[-1] if matches else None
+        if not matches:
+            return None
+        self._position[matches[-1]] = 0
+        return matches[-1]
 
     @property
     def models(self) -> dict[str, str]:

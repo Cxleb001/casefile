@@ -37,7 +37,7 @@ flowchart LR
 4. **Verifier:** every claim must cite evidence that exists in this case; every account id, date and number in a factual claim must appear in that evidence; then Nemotron reads each claim next to its evidence. Rejected claims stay visible, struck through.
 5. **Evidence standard:** the structure measured in the money decides the disposition. If the model leans the other way, the case is marked **NEEDS REVIEW** instead of either side silently winning.
 
-The app shows each case in five tabs: **Findings** (claims with their verdicts, each opening its SQL and rows), **Money flow** (the pattern as a graph), **Investigation trace** (each Markovian step, its carryover and prompt size), **Evidence** (every query) and **SAR draft** (downloadable).
+**The analyst view** (`streamlit run app.py`) opens on an **alert inbox**: every alert with its decision, typology, verified claims and the analyst's call. A case opens on a **decision card**: the stamp (escalate or close), the headline, the strongest verified reasons, what Institution B added (transactions only Bank B could see, with B's withheld fields shown redacted), and the key numbers. Accounts at Bank B are marked in orange everywhere, and evidence rows from Bank B are tinted. Below the card, **the analyst decides**: file the SAR, close, override Casefile, or ask for more information, with a note that is saved with the case. Five tabs follow: **Findings** (each claim with its verdict, a struck-out claim showing why, each opening its SQL and rows), **Money flow** (the pattern as a graph, Bank A in blue and Bank B in orange), **Investigation trace** (each Markovian step, the state carried into it and its prompt size), **Evidence** (every query, which bank's data it read) and **SAR draft** (downloadable).
 
 ## How the sponsor technology is used
 
@@ -158,7 +158,7 @@ All settings live in `.env` (see `.env.example`; it is gitignored, and keys are 
 | `python scripts/check_nightshift.py [--model ID]` | Find Nightshift, check the token, list models, send one test chat |
 | `python scripts/build_sample.py --run runs/eval/<name> --alerts ...` | Rebuild `sample/` from a recorded run, with its self-checks |
 | `bash scripts/conformance/run_meterless_conformance.sh` | Meterless's own Markovian conformance suite against Casefile's engine |
-| `pip install pytest && pytest` | 59 tests: a hand-built world with a known ring, tools, signals, guardrails, Zetaris auth, the Markovian engine and conformance, record-and-replay, the bundled sample |
+| `pip install pytest && pytest` | 66 tests: a hand-built world with a known ring, tools, signals, guardrails, Zetaris auth, the Markovian engine and conformance, record-and-replay, the bundled sample, the analyst view's helpers |
 
 **Sample inputs and outputs:** [input_examples/](input_examples/) holds alerts as the agent receives them; [output_examples/](output_examples/) holds the case files, SAR drafts, evaluation results and model-call logs they produced.
 

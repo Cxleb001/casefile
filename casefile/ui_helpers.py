@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+import re
 from typing import Any
 
 CURRENCY = {
@@ -82,3 +84,103 @@ def flow_dot(case: dict[str, Any], max_direct: int = 10, include_flagged: bool =
 
 def status_badge(status: str) -> str:
     return {"verified": "✅ verified", "checked": "☑️ checked", "rejected": "❌ rejected"}.get(status, "❔ unverified")
+
+
+# ---------------------------------------------------------------- case view helpers
+
+_ACCOUNT_KEY = re.compile(r"\b\d{1,6}:[0-9A-Za-z]{6,}\b")
+
+
+def accounts_at(case: dict[str, Any], institution: str) -> set[str]:
+    """Account keys ("bank:account") the case knows to be at an institution."""
+    return {k for k, v in case.get("accounts", {}).items() if v.get("institution") == institution}
+
+
+def bank_b_summary(case: dict[str, Any]) -> dict[str, int]:
+    """What Institution B's data added to this case's money trail."""
+    edges = case.get("edges", [])
+    return {
+        "b_only_tx": sum(1 for e in edges if (e.get("seen_in") or []) == ["B"]),
+        "cross_tx": sum(1 for e in edges if set(e.get("seen_in") or []) == {"A", "B"}),
+        "b_accounts": len(accounts_at(case, "B")),
+        "tx": len(edges),
+    }
+
+
+def top_reasons(report: dict[str, Any], n: int = 3) -> list[str]:
+    """The first claims that survived verification, in the order the report gives them."""
+    kept = [c for c in report.get("claims", []) if c.get("verdict", {}).get("status") in {"verified", "checked"}]
+    return [c["text"] for c in kept[:n]]
+
+
+def mark_accounts(text: str, case: dict[str, Any]) -> str:
+    """HTML-escape text and tag each account by institution, so Bank B's accounts stand out."""
+    b, a = accounts_at(case, "B"), accounts_at(case, "A")
+    out, last = [], 0
+    for m in _ACCOUNT_KEY.finditer(text):
+        out.append(html.escape(text[last:m.start()]))
+        key = m.group(0)
+        cls = "cf-acct cf-acct-b" if key in b else "cf-acct cf-acct-a" if key in a else "cf-acct"
+        title = " title=\"Institution B account\"" if key in b else ""
+        out.append(f'<span class="{cls}"{title}>{html.escape(key)}</span>')
+        last = m.end()
+    out.append(html.escape(text[last:]))
+    # "$" as an entity: Streamlit's markdown would otherwise read "$92k ... $280k" as a maths formula.
+    return "".join(out).replace("$", "&#36;")
+
+
+def query_source(sql: str, tables: dict[str, str]) -> str:
+    """Which institution's data a query read, from the registered table names in its SQL."""
+    def uses(*keys: str) -> bool:
+        return any(re.search(rf"(?<![\w.]){re.escape(tables[k])}(?![\w.])", sql or "") for k in keys if k in tables)
+    a, b = uses("ledger_a", "kyc_a"), uses("ledger_b", "kyc_b")
+    if a and b:
+        return "Banks A + B"
+    if b:
+        return "Bank B"
+    if a:
+        return "Bank A"
+    return "Compliance" if uses("watchlist") else "Other"
+
+
+def b_row_flags(rows: list[list[Any]], columns: list[str], b_accounts: set[str]) -> list[bool]:
+    """Rows that show Institution B's side: seen only in B's ledger, or naming a B account."""
+    b_ids = {k.split(":", 1)[1] for k in b_accounts}
+    seen = columns.index("seen_in") if "seen_in" in columns else None
+    flags = []
+    for row in rows:
+        only_b = seen is not None and str(row[seen]).strip("[]'\" ") == "B"
+        flags.append(only_b or any(isinstance(v, str) and v in b_ids for v in row))
+    return flags
+
+
+def engine_outcome(engine: dict[str, Any]) -> tuple[str, str]:
+    """A plain label for how a Markovian run ended, and a one-line reason."""
+    status = engine.get("status")
+    if status == "completed":
+        return "Finished", "The planner decided it had tested enough."
+    if status == "max-chunks":
+        return "Used every step", "The planner used all the follow-ups it was allowed."
+    error = str(engine.get("error") or "")
+    reason = "the planner's reply was cut off or was not valid JSON" if "JSON" in error else (error[:120] or "an error")
+    return "Stopped early", f"Stopped because {reason}; the decision rests on the evidence gathered so far."
+
+
+def inbox_rows(alerts: list[dict[str, Any]], reports: dict[str, dict[str, Any]],
+               analyst: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    """One row per alert for the start page, with the latest saved decision and the analyst's call, if any."""
+    rows = []
+    for alert in alerts:
+        report = reports.get(alert["alert_id"])
+        if report:
+            v = report.get("verification", {})
+            status = report["disposition"].capitalize() + (", needs review" if report.get("needs_review") else "")
+            typology = (report.get("typology") or "NONE").replace("NONE", "–").capitalize()
+            claims = f"{v.get('verified', 0) + v.get('checked', 0)} of {v.get('total', 0)}"
+        else:
+            status, typology, claims = "Not investigated", "", ""
+        rows.append({"Alert": alert["alert_id"], "Account": f"{alert['bank_id']}:{alert['account']}",
+                     "Raised": alert.get("alert_ts", ""), "Rule": alert["rules"].replace("|", ", ").replace("_", " ").lower(),
+                     "Decision": status, "Typology": typology, "Claims verified": claims,
+                     "Analyst": (analyst or {}).get(alert["alert_id"], "")})
+    return rows
