@@ -1,0 +1,8 @@
+alert_id,institution,bank_id,account,alert_ts,rules,trigger
+ALR-002,A,21749,800B649E0,2022-09-10 17:49,PASS_THROUGH,"pass-through activity: 5 senders in, 6 recipients out (rule: 5+ each way)"
+ALR-004,A,222,811B83280,2022-09-17 02:45,PASS_THROUGH,"pass-through activity: 5 senders in, 10 recipients out (rule: 5+ each way)"
+ALR-007,A,3149,80145D1D0,2022-09-09 18:10,PASS_THROUGH,"pass-through activity: 5 senders in, 7 recipients out (rule: 5+ each way)"
+ALR-012,A,223,811A00890,2022-09-11 12:14,PASS_THROUGH,"pass-through activity: 6 senders in, 8 recipients out (rule: 5+ each way)"
+ALR-019,A,12963,8011C4BC0,2022-09-10 00:22,PASS_THROUGH,"pass-through activity: 5 senders in, 5 recipients out (rule: 5+ each way)"
+ALR-022,A,214615,8075AC7C0,2022-09-10 18:53,FAN_OUT|PASS_THROUGH,"sent funds to 16 distinct counterparties (rule: 16+); pass-through activity: 15 senders in, 16 recipients out (rule: 5+ each way)"
+ALR-030,A,11,800924840,2022-09-13 16:32,PASS_THROUGH,"pass-through activity: 15 senders in, 10 recipients out (rule: 5+ each way)"

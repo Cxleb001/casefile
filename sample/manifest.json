@@ -1,0 +1,44 @@
+{
+  "alerts": [
+    "ALR-030",
+    "ALR-022",
+    "ALR-012",
+    "ALR-004",
+    "ALR-019",
+    "ALR-002",
+    "ALR-007"
+  ],
+  "accounts_kept": 296,
+  "rows": {
+    "ledger_a": 18374,
+    "ledger_b": 12039,
+    "kyc_a": 155,
+    "kyc_b": 141,
+    "watchlist": 1510
+  },
+  "source": "IBM AMLworld HI-Small transactions (CDLA-Sharing-1.0), sliced; KYC and watchlist are synthetic",
+  "recorded_run": "final-ai-federated-v2",
+  "max_steps": 8,
+  "checks": {
+    "queries_identical": 242,
+    "cases_identical": 14,
+    "replay_matches_recorded_run": 7,
+    "answers_matched_by_order_only": 9
+  },
+  "decisions": {
+    "ALR-002/replay": "CLOSE",
+    "ALR-002/rules": "CLOSE",
+    "ALR-004/replay": "ESCALATE",
+    "ALR-004/rules": "ESCALATE",
+    "ALR-007/replay": "CLOSE",
+    "ALR-007/rules": "CLOSE",
+    "ALR-012/replay": "ESCALATE",
+    "ALR-012/rules": "ESCALATE",
+    "ALR-019/replay": "CLOSE",
+    "ALR-019/rules": "CLOSE",
+    "ALR-022/replay": "ESCALATE",
+    "ALR-022/rules": "ESCALATE",
+    "ALR-030/replay": "ESCALATE",
+    "ALR-030/rules": "ESCALATE"
+  }
+}

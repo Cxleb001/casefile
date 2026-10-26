@@ -1,0 +1,396 @@
+{
+  "disposition": "ESCALATE",
+  "typology": "GATHER-SCATTER",
+  "confidence": 0.78,
+  "headline": "Junken & Schmiedecke Partners (11:800924840) shows a gather‑scatter pattern with 12 one‑off inbound ACH payments and 5 one‑off outbound payments within three days, plus two layered onward moves, warranting escalation despite low pass‑through volume.",
+  "claims": [
+    {
+      "id": "C1",
+      "kind": "fact",
+      "text": "Subject is a German agricultural partnership (Junken & Schmiedecke Partners) with declared monthly turnover $280,000, medium risk, no PEP flag.",
+      "evidence": [
+        "Q-0ce867e77a"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Customer record and profile summary confirm name, type, country, industry, risk, PEP status, and declared turnover."
+      }
+    },
+    {
+      "id": "C2",
+      "kind": "fact",
+      "text": "Between 2022‑09‑06 and 2022‑09‑10 the account received 15 inbound ACH transactions from 15 distinct counterparties totalling $78,476,248.",
+      "evidence": [
+        "Q-254e00ab3c",
+        "Q-f2296f5d31"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Activity summary shows exactly 15 inbound ACH transactions from 15 counterparties totalling $78,476,248 between the stated timestamps."
+      }
+    },
+    {
+      "id": "C3",
+      "kind": "fact",
+      "text": "From 2022‑09‑01 to 2022‑09‑13 the account sent 70 outbound transactions to 10 counterparties totalling $92,417 (21 ACH/wire, 14 cash/bitcoin, 14 credit‑card, 21 cheque).",
+      "evidence": [
+        "Q-254e00ab3c",
+        "Q-5ef2e4ed64"
+      ],
+      "verdict": {
+        "status": "rejected",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Evidence provides only 21 ACH/wire and 14 cash/bitcoin counts; it does not mention 14 credit‑card or 21 cheque transactions."
+      }
+    },
+    {
+      "id": "C4",
+      "kind": "inference",
+      "text": "Within a 3‑day window the subject made one‑off payments to 5 accounts and received one‑off payments from 12 accounts – a gather‑scatter shape flagged as suspicious (strength 3/3).",
+      "evidence": [
+        "Q-23e994eb2a",
+        "Q-6fbeaa28ff"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Analyze_network signal one_off_transfers directly states the gather‑scatter pattern with 5 outbound and 12 inbound one‑off transfers."
+      }
+    },
+    {
+      "id": "C5",
+      "kind": "inference",
+      "text": "Two of the counterparties in those one‑off transfers moved the funds onward by transfer within 72 hours, forming a layering chain (strength 2/3).",
+      "evidence": [
+        "Q-6fbeaa28ff",
+        "Q-766a1e1c77",
+        "Q-679402615a",
+        "Q-23e994eb2a",
+        "Q-3737265c97",
+        "Q-9e1e78df97"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Analyze_network signal layered_transfers reports 2 counterparties moving funds onward within 72 hours, forming a layering chain."
+      }
+    },
+    {
+      "id": "C6",
+      "kind": "inference",
+      "text": "The busiest 24‑hour period involved 8 distinct counterparties, four times the daily average (burst signal, strength 1/3).",
+      "evidence": [
+        "Q-23e994eb2a",
+        "Q-6fbeaa28ff"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Analyze_network signal burst records busiest 24 h with 8 distinct counterparties, 4× the daily average."
+      }
+    },
+    {
+      "id": "C7",
+      "kind": "fact",
+      "text": "No watchlist match for the subject; 25 Institution B counterparties could not be screened because B withholds names.",
+      "evidence": [
+        "Q-f9d17569dc",
+        "Q-7af510e81d"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Screen_watchlist summary confirms no watchlist match for the subject and 25 Institution B counterparties not screenable."
+      }
+    },
+    {
+      "id": "C8",
+      "kind": "fact",
+      "text": "Outbound volume is only 0.12 % of inbound ($92k vs $78.5M); only $73,647 left the account within 72 h of any inflow (pass‑through ratio 0 %).",
+      "evidence": [
+        "Q-23e994eb2a",
+        "Q-6d22b09c1b",
+        "Q-6fbeaa28ff",
+        "Q-6dc271f282"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Pass_through signal shows out/in ratio ~0.001 (0.12 %) and $73,647 (0 % of inflows) left within 72 h."
+      }
+    }
+  ],
+  "counter_evidence": [
+    {
+      "id": "X1",
+      "kind": "fact",
+      "text": "Outbound activity ($92k) aligns with the declared turnover ($280k/month ≈ 0.8×) and is negligible compared with the massive inbound receipts, suggesting the inbound funds are not being passed through.",
+      "evidence": [
+        "Q-0ce867e77a",
+        "Q-254e00ab3c"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Turnover_vs_declared signal shows outflows ≈0.8× declared turnover; pass_through signal shows negligible pass‑through, supporting the inference."
+      }
+    },
+    {
+      "id": "X2",
+      "kind": "fact",
+      "text": "No convergence, cycles, or inter‑counterparty payments were detected; counterparties span diverse industries (agriculture, construction, precious metals, money services) and geographies with no hub accounts.",
+      "evidence": [
+        "Q-7f2d6fd2dd",
+        "Q-83bad4e4b6"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Cycle, convergence, interconnection signals are 0/3; hubs signal shows 0 hubs; counterparty mix and counterparty detail rows show diverse industries and geographies."
+      }
+    },
+    {
+      "id": "X3",
+      "kind": "fact",
+      "text": "Subject’s KYC shows a long‑standing account (opened 2009), medium risk, no PEP, last review 2018, providing a benign background.",
+      "evidence": [
+        "Q-0ce867e77a"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Customer record lists account_open_date 2009‑03‑19, risk Medium, pep_flag false, last_review_date 2018‑03‑27."
+      }
+    }
+  ],
+  "would_change_my_mind": [
+    "Documented commercial contracts or invoices explaining the 15 large inbound ACH payments as legitimate sales or trade finance.",
+    "Evidence that the five one‑off outbound payments are recurring payroll or supplier settlements over a longer period.",
+    "Confirmation that the two layered onward moves are normal supply‑chain settlements (e.g., payments to a logistics provider that forwards to a subcontractor)."
+  ],
+  "sanctions_referral": {
+    "needed": false,
+    "evidence": [],
+    "reason": "No strong watchlist match on the subject."
+  },
+  "limitations": [
+    "Institution B’s governed view withholds names and dates of birth, preventing screening of 25 counterparties.",
+    "Analysis limited to a 72‑hour tracing window; longer‑term patterns not examined.",
+    "No access to underlying trade documentation, invoices, or beneficial‑owner information for counterparties.",
+    "25 counterparties at Institution B could not be screened by name: B's governed view (inst_b.kyc_b_shared) withholds names and dates of birth."
+  ],
+  "narrative": "Junken & Schmiedecke Partners (11:800924840), a German agricultural partnership, received $78.5 M in 15 one‑off ACH payments from 15 distinct counterparties over five days (Sep 6‑10 2022) while sending only $92 k outbound to 10 counterparties across two weeks. Network analysis flags a gather‑scatter pattern: within three days the account made single payments to five accounts and received single payments from twelve accounts, and two of those counterparties forwarded the funds onward within 72 hours, indicating a layering chain. A burst of eight distinct counterparties in a single day further elevates suspicion. However, outbound volume is trivial relative to inbound (0.12 %), the pass‑through ratio is zero, and outbound turnover matches the declared $280 k/month. No watchlist hit exists for the subject, and counterparties show no convergence, cycles, or hub behaviour. Because the structural signals (gather‑scatter, layering, burst) meet the escalation threshold despite the low pass‑through, the case is escalated for further investigation. Institution B’s name withholding limits counterparty screening.",
+  "author": {
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "step": "report",
+    "latency_ms": 65972
+  },
+  "verification": {
+    "verified": 7,
+    "checked": 0,
+    "rejected": 1,
+    "total": 8
+  },
+  "model_disposition": "ESCALATE",
+  "measured": {
+    "disposition": "ESCALATE",
+    "typology": "GATHER-SCATTER",
+    "score": 6,
+    "signals": [
+      "one_off_transfers 3/3",
+      "layered_transfers 2/3",
+      "burst 1/3"
+    ]
+  },
+  "decision_basis": "The model's conclusion and the measured structure agree.",
+  "model_sanctions_referral": false,
+  "counterparty_watchlist": [],
+  "investigation": {
+    "steps": [
+      {
+        "step": 1,
+        "thought": "The pass-through alert flagged 15 inbound and 10 outbound counterparties. I need to determine whether the observed structure (many one-off inbound from B, large outbound to A and B, layered_transfers signal, and burst) reflects a laundering typology (gather-scatter/layering) or an innocent explanation (payroll/trade). I will examine the specific counterparties and transactions behind the signals to test competing explanations.",
+        "action": "get_counterparties",
+        "args": {
+          "bank_id": 1,
+          "account": "21831:800E44940",
+          "direction": "in",
+          "limit": 5
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 17810,
+        "carryover_in": "",
+        "carryover_level": "marker",
+        "prompt_tokens": 11438,
+        "observation_step": 8,
+        "error": null
+      },
+      {
+        "step": 2,
+        "thought": "The counterparty 21831:800E44940 (Agriculture, DE) received $20,852 from the subject across 28 transactions. Now I need to check who paid that counterparty to see if there's a convergence pattern or shared owner that explains the one_off_transfers signal.",
+        "action": "get_counterparties",
+        "args": {
+          "bank_id": null,
+          "account": "21831:800E44940",
+          "direction": "in",
+          "order_by": "usd",
+          "limit": 50
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 5234,
+        "carryover_in": "COMPLETED: ... REMAINING: ... DECISIONS: ... CONTEXT: ...",
+        "carryover_level": "marker",
+        "prompt_tokens": 3278,
+        "observation_step": 9,
+        "error": null
+      },
+      {
+        "step": 3,
+        "thought": "Investigate whether the two counterparties that paid 21831:800E44940 (20:800B14740 and 11:800924840) themselves share a common upstream sender or owner, which would test the convergence theory behind the layered_transfers signal.",
+        "action": "get_counterparties",
+        "args": {
+          "bank_id": 1,
+          "account": "20:800B14740",
+          "direction": "in",
+          "order_by": "usd",
+          "limit": 10
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 5697,
+        "carryover_in": "COMPLETED: get_counterparties for subject 11:800924840 ran (showed 10 outbound, 15 inbound counterparties; 6 A / 4 B outbound; 6 A / 9 B inbound). REMAINING: Check counterparty 21831:800E44940's inbound senders to test convergence or shared owner theory. DECISIONS: one_off_transfers signal (3/3 suspicious) needs investigation of whether those 5 outbound and 12 inbound accounts converge on a common party. CONTEXT: Subject account 11:800924840; counterparty 21831:800E44940 received 28 tx $20,852 from subject; earlier follow_money traced 2-hop patterns across both ledgers.",
+        "carryover_level": "marker",
+        "prompt_tokens": 7307,
+        "observation_step": 10,
+        "error": null
+      },
+      {
+        "step": 4,
+        "thought": "I need to verify whether the two counterparties that sent money to 21831:800E44940 share a common upstream source or owner, which would test the layered_transfers signal. If they converge on the same origin, the layering chain is more plausible; if they are unrelated, the signal weakens.",
+        "action": "follow_money",
+        "args": {
+          "bank_id": 1,
+          "account": "21831:800E44940",
+          "direction": "in",
+          "hops": 2,
+          "window_hours": 72
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 5328,
+        "carryover_in": "COMPLETED: get_counterparties for subject 11:800924840 ran (showed 10 outbound, 15 inbound counterparties; 6 A / 4 B outbound; 6 A / 9 B inbound). get_counterparties for 21831:800E44940 shows 2 inbound counterparties: 20:800B14740 (B, Partnership, NL) and 11:800924840 (subject). REMAINING: Check the other inbound counterparty's details and whether any of these accounts converge on a shared owner or upstream hub. DECISIONS: layered_transfers signal (2/3 suspicious) hinges on whether money moved onward within 72h; need to confirm if the two counterparties feeding 21831:800E44940 have a common source. CONTEXT: Subject account 11:800924840; counterparty 21831:800E44940 received 28 tx $20,852 from subject; 20:800B14740 received 3 tx $4,873,213 from unknown sender.",
+        "carryover_level": "marker",
+        "prompt_tokens": 4895,
+        "observation_step": 11,
+        "error": null
+      },
+      {
+        "step": 5,
+        "thought": "I need to check the two counterparties that feed into 21831:800E44940 (20:800B14740) to see if they share a common upstream source or owner, and whether any link back to the subject within 72h. This directly addresses the layered_transfers signal (2/3 suspicious) and the one_off_transfers hub exclusion.",
+        "action": "get_counterparties",
+        "args": {
+          "bank_id": null,
+          "account": "20:800B14740",
+          "direction": "in",
+          "order_by": "usd",
+          "limit": 50
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 17563,
+        "carryover_in": "COMPLETED: get_counterparties for subject 11:800924840 ran (showed 10 outbound, 15 inbound counterparties; 6 A / 4 B outbound; 6 A / 9 B inbound). get_counterparties for 21831:800E44940 shows 2 inbound counterparties: 20:800B14740 (B, Partnership, NL) and 11:800924840 (subject). REMAINING: Check whether 20:800B14740's two inbound counterparties (11:80026F8F0 and 12:8007FC020) share a common upstream source or owner, and whether any of them link back to the subject within 72h. DECISIONS: layered_transfers signal (2/3 suspicious) hinges on whether money moved onward within 72h; need to confirm if the two counterparties feeding 21831:800E44940 have a common source. CONTEXT: Subject account 11:800924840; counterparty 21831:800E44940 received 28 tx $20,852 from subject; 20:800B14740 received 3 tx $4,873,213 from unknown sender.",
+        "carryover_level": "marker",
+        "prompt_tokens": 3431,
+        "observation_step": 12,
+        "error": null
+      },
+      {
+        "step": 6,
+        "thought": "I need to determine whether the layered_transfers signal is substantiated by checking if the two counterparties feeding 21831:800E44940 (11:80026F8F0 and 12:8007FC020) share a common upstream source or owner, and whether any link back to the subject within 72h. This will confirm or refute the layering chain.",
+        "action": "follow_money",
+        "args": {
+          "bank_id": 11,
+          "account": "11:80026F8F0",
+          "direction": "out",
+          "hops": 2,
+          "window_hours": 72
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 8199,
+        "carryover_in": "COMPLETED: get_counterparties for subject 11:800924840 ran (showed 10 outbound, 15 inbound counterparties; 6 A / 4 B outbound; 6 A / 9 B inbound). get_counterparties for 21831:800E44940 shows 2 inbound counterparties: 20:800B14740 (B, Partnership, NL) and 11:800924840 (subject). REMAINING: Check whether 20:800B14740's two inbound counterparties (11:80026F8F0 and 12:8007FC020) share a common upstream source or owner, and whether any of them link back to the subject within 72h. DECISIONS: layered_transfers signal (2/3 suspicious) hinges on whether money moved onward within 72h; need to confirm if the two counterparties feeding 21831:800E44940 have a common source. CONTEXT: Subject account 11:800924840; counterparty 21831:800E44940 received 28 tx $20,852 from subject; 20:800B14740 received 3 tx $4,873,213 from unknown sender.",
+        "carryover_level": "marker",
+        "prompt_tokens": 4944,
+        "observation_step": 13,
+        "error": null
+      },
+      {
+        "step": 7,
+        "thought": "I need to check the two counterparties that feed into 21831:800E44940 (20:800B14740's inbound partners) to see if they share a common upstream source or owner, and whether any link back to the subject within 72h. This directly tests the layered_transfers signal (2/3 suspicious) about money moving onward within 72h.",
+        "action": "get_counterparties",
+        "args": {
+          "bank_id": null,
+          "account": "20:800B14740",
+          "direction": "in",
+          "order_by": "usd",
+          "limit": 50
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 6090,
+        "carryover_in": "COMPLETED: get_counterparties for subject 11:800924840 ran (showed 10 outbound, 15 inbound counterparties; 6 A / 4 B outbound; 6 A / 9 B inbound). get_counterparties for 21831:800E44940 shows 2 inbound counterparties: 20:800B14740 (B, Partnership, NL) and 11:800924840 (subject). REMAINING: Check whether 20:800B14740's two inbound counterparties (11:80026F8F0 and 12:8007FC020) share a common upstream source or owner, and whether any of them link back to the subject within 72h. DECISIONS: layered_transfers signal (2/3 suspicious) hinges on whether money moved onward within 72h; need to confirm if the two counterparties feeding 21831:800E44940 have a common source. CONTEXT: Subject account 11:800924840; counterparty 21831:800E44940 received 28 tx $20,852 from subject; 20:800B14740 received 3 tx $4,873,213 from unknown sender.",
+        "carryover_level": "marker",
+        "prompt_tokens": 3390,
+        "skipped": "That exact call already ran (see your state). Ask something new or finish."
+      },
+      {
+        "step": 8,
+        "error": "planner reply unusable: Model did not return valid JSON: {\"thought\": \"I need to check whether the two inbound counterparties of 20:800B14740 (11:80026F8F0 and 12:8007FC020) share a common upstream source or owner, and whether any link back to the subject within 72h. This will clarify the layered_transfers signal.\", \"action\": \"get_counterparties\", \"args\": "
+      }
+    ],
+    "leaning": null,
+    "open_questions": [],
+    "engine": {
+      "engine": "markovian",
+      "run_id": "run-9f6094cdf8aa",
+      "status": "errored",
+      "chunks": 7,
+      "chunk_config": {
+        "chunkSize": 4000,
+        "maxChunks": 8,
+        "carryoverTokens": 800,
+        "overlapTokens": 0
+      },
+      "token_label": "estimated",
+      "estimated_tokens_used": 535,
+      "estimated_tokens_saved": 0,
+      "estimated_efficiency_percent": 0.0,
+      "measured_prompt_tokens": [
+        11438,
+        3278,
+        7307,
+        4895,
+        3431,
+        4944,
+        3390
+      ],
+      "final_state": "COMPLETED: get_counterparties for subject 11:800924840 ran (showed 10 outbound, 15 inbound counterparties; 6 A / 4 B outbound; 6 A / 9 B inbound). Counterparty 21831:800E44940 received 28 tx $20,852 from subject; 20:800B14740 received 3 tx $4,873,213 from unknown sender.\nREMAINING: Check whether 20:800B14740's two inbound counterparties (11:80026F8F0 and 12:8007FC020) share a common upstream source or owner, and whether any of them link back to the subject within 72h.\nDECISIONS: layered_transfers signal (2/3 suspicious) hinges on whether money moved onward within 72h; need to confirm if the two counterparties feeding 21831:800E44940 have a common source.\nCONTEXT: Subject account 11:800924840; counterparty 21831:800E44940 received 28 tx $20,852 from subject; 20:800B14740 received 3 tx $4,873,213 from unknown sender.",
+      "reflection": null,
+      "error": "Model did not return valid JSON: {\"thought\": \"I need to check whether the two inbound counterparties of 20:800B14740 (11:80026F8F0 and 12:8007FC020) share a common upstream source or owner, and whether any link back to the subject within 72h. This will clarify the layered_transfers signal.\", \"action\": \"get_counterparties\", \"args\": "
+    }
+  },
+  "timing": {
+    "seconds": 232.3,
+    "queries": 26,
+    "tool_calls": 13
+  },
+  "backend": "zetaris"
+}

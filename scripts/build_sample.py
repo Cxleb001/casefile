@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from casefile.agent.pipeline import run_case  # noqa: E402
-from casefile.config import DEFAULT_TABLES, get_settings  # noqa: E402
+from casefile.config import SAMPLE_TABLES, get_settings  # noqa: E402
 from casefile.data.local import LocalBackend  # noqa: E402
 from casefile.evidence import EvidenceStore  # noqa: E402
 from casefile.replay import ReplayLLM, load_recordings  # noqa: E402
@@ -90,7 +90,7 @@ def outcome(report: dict) -> dict:
 
 def run_all(alerts, prepared: Path, recordings: Path | None, work: Path, label: str):
     """Run every alert rules-only and (with recordings) as a replay. Returns outcomes, query rows, capture."""
-    settings = replace(get_settings(), data_backend="local", tables=dict(DEFAULT_TABLES))
+    settings = replace(get_settings(), data_backend="local", tables=dict(SAMPLE_TABLES))
     backend = Capture(LocalBackend(settings, prepared_dir=prepared))
     store = EvidenceStore(work / f"{label}.duckdb")
     outcomes, mismatches = {}, 0
@@ -228,7 +228,10 @@ def main() -> int:
         "recorded_run": args.run.name if args.run else None,
         "max_steps": MAX_STEPS,
         "checks": {"queries_identical": len(full_rows), "cases_identical": len(full),
-                   "replay_matches_recorded_run": len(recorded_reports)},
+                   "replay_matches_recorded_run": len(recorded_reports),
+                   # Zetaris prints timestamps as "...:00.0" and may return tied rows in another order, so a
+                   # few prompts differ in formatting from DuckDB's; their answers are matched by order.
+                   "answers_matched_by_order_only": slice_mismatch},
         "decisions": {f"{a}/{mode}": o["disposition"] + (" (needs review)" if o["needs_review"] else "")
                       for (a, mode), o in sorted(full.items())},
     }

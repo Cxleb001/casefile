@@ -51,6 +51,9 @@ DEFAULT_TABLES = {
     "kyc_b": "shared.kyc_b",
     "watchlist": "compliance.watchlist",
 }
+# The names on the local / Codespace Zetaris route (scripts/zetaris/register_local.sql), where the recorded
+# runs were made. Sample mode uses them so a replayed case sees exactly the prompts the recorded one did.
+SAMPLE_TABLES = {**DEFAULT_TABLES, "kyc_b": "inst_b.kyc_b_shared"}
 
 # Default model per step for each provider. "plan" runs the investigation loop
 # (many short tool choices, so a fast model), "report" writes the decision and SAR
@@ -183,7 +186,7 @@ def get_settings() -> Settings:
 
     return Settings(
         data_backend=backend,
-        tables={key: _env(var, DEFAULT_TABLES[key]) for key, var in TABLE_ENV.items()},
+        tables=dict(SAMPLE_TABLES) if SAMPLE_MODE else {key: _env(var, DEFAULT_TABLES[key]) for key, var in TABLE_ENV.items()},
         zetaris_route=route,
         zetaris_rest_url=_env("ZETARIS_REST_URL").rstrip("/"),
         zetaris_base_url=_env("ZETARIS_BASE_URL").rstrip("/"),

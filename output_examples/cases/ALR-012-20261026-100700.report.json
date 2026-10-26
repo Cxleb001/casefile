@@ -1,0 +1,416 @@
+{
+  "disposition": "ESCALATE",
+  "typology": "CYCLE",
+  "confidence": 0.91,
+  "headline": "Lyons & Rollins Partners (223:811A00890) participates in a 4‑hop money‑return ring and shows fan‑in, layering and extreme pass‑through – a clear laundering cycle.",
+  "claims": [
+    {
+      "id": "C1",
+      "kind": "fact",
+      "text": "Subject is a Saudi‑registered partnership (Lyons & Rollins Partners) in real estate, declared monthly turnover $18,000,000, risk Low, not a PEP.",
+      "evidence": [
+        "Q-b8a17e83f5"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Profile account and customer record confirm the subject is a Saudi‑registered partnership (Lyons & Rollins Partners) in real estate with declared monthly turnover $18,000,000, risk Low, and PEP flag false."
+      }
+    },
+    {
+      "id": "C2",
+      "kind": "fact",
+      "text": "During 1‑Sep‑2022 to 11‑Sep‑2022 the account received 39 inbound transactions from 6 counterparties totalling $806,723 and sent 134 outbound transactions to 8 counterparties totalling $18,222,382.",
+      "evidence": [
+        "Q-ebca769c54"
+      ],
+      "verdict": {
+        "status": "rejected",
+        "layer": "deterministic",
+        "reason": "not found in the cited evidence: 11"
+      }
+    },
+    {
+      "id": "C3",
+      "kind": "inference",
+      "text": "A 4‑hop cycle returns funds to the subject: 223:811A00890 → 119:811B6E2B0 → 222:811D80C30 → 121:8000E1590 → 223:811A00890, moving 23,370.22 SAR out and 51,609.52 SAR back within 7 days 3 hours.",
+      "evidence": [
+        "Q-74274b4397",
+        "Q-c403b742d5",
+        "Q-5b57ec1f5c",
+        "Q-680bd6949f",
+        "Q-35598e7bd8",
+        "Q-52d6c45ce8",
+        "Q-e1c0b16b86"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Analyze_network cycle signal explicitly describes a 4‑hop ring 223:811A00890 → 119:811B6E2B0 → 222:811D80C30 → 121:8000E1590 → 223:811A00890 moving 23,370.22 SAR out and 51,609.52 SAR back within 7 days 3 hours."
+      }
+    },
+    {
+      "id": "C4",
+      "kind": "inference",
+      "text": "Two one‑off ACH inbound transfers from distinct accounts arrived within a 3‑day window with no other activity – a fan‑in pattern.",
+      "evidence": [
+        "Q-680bd6949f"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "One_off_transfers signal states the subject received one ACH transfer each from two distinct accounts within 3 days with no other activity, a fan‑in pattern (in=2, days=3)."
+      }
+    },
+    {
+      "id": "C5",
+      "kind": "inference",
+      "text": "One of those one‑off counterparties forwarded the received funds onward within 72 hours, forming a layering chain.",
+      "evidence": [
+        "Q-5b57ec1f5c",
+        "Q-680bd6949f",
+        "Q-e1c0b16b86"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Layered_transfers signal reports that one of the one‑off counterparties moved the received funds onward within 72 hours, forming a layering chain (chains=1)."
+      }
+    },
+    {
+      "id": "C6",
+      "kind": "fact",
+      "text": "Outbound volume is 22.6 times inbound ($18.2 M out vs $0.8 M in) and $18.2 M left the account within 72 hours of an inflow (pass‑through ratio 22.59).",
+      "evidence": [
+        "Q-680bd6949f",
+        "Q-c63907eb02",
+        "Q-535f52da1e",
+        "Q-b9e10ca3e0",
+        "Q-c3b9261bd0",
+        "Q-c403b742d5"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Profile account shows OUT $18,222,382 vs IN $806,723 (≈22.6×). Pass_through signal gives out/in ratio 22.59 and notes $18,222,382 left within 72 h of an inflow."
+      }
+    },
+    {
+      "id": "C7",
+      "kind": "fact",
+      "text": "Traced outflows project to ~ $56.4 M per month, 3.1 × the declared $18 M turnover.",
+      "evidence": [
+        "Q-b8a17e83f5"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Turnover_vs_declared signal states traced outflows project to about $56,398,258 per month, 3.1× the declared $18,000,000 turnover."
+      }
+    }
+  ],
+  "counter_evidence": [
+    {
+      "id": "X1",
+      "kind": "fact",
+      "text": "No convergence, interconnection, or uniform‑amount patterns among the subject’s counterparties (all context signals 0/3).",
+      "evidence": [
+        "Q-35598e7bd8"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Convergence, interconnection, and uniform_amounts signals are all listed as context 0/3 with descriptions indicating no such patterns."
+      }
+    },
+    {
+      "id": "X2",
+      "kind": "fact",
+      "text": "Only one high‑volume hub counterparty exists and it carries 0 % of the subject’s value.",
+      "evidence": [
+        "Q-35598e7bd8",
+        "Q-e1c0b16b86"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Hubs signal shows exactly one high‑volume hub counterparty (threshold 50+) and its value share is 0 %."
+      }
+    },
+    {
+      "id": "X3",
+      "kind": "fact",
+      "text": "Watchlist screening found no match for the subject; two counterparty name‑only hits have mismatched DOB/country, indicating false positives.",
+      "evidence": [
+        "Q-eb189a5ff5",
+        "Q-5fe5673d82"
+      ],
+      "verdict": {
+        "status": "rejected",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Watchlist screening only reports “no match for the subject” and “2 counterparty match(es)… (name only)”. It does not provide DOB or country data to confirm mismatches, so the claim adds unsupported detail."
+      }
+    }
+  ],
+  "would_change_my_mind": [
+    "Documented commercial contracts or invoices linking the large outbound payments to legitimate property acquisitions.",
+    "Evidence that the 4‑hop ring is a known clearing/settlement arrangement (e.g., a real‑estate escrow loop) with matching amounts and timestamps.",
+    "Full KYC (names, beneficial owners) for the 12 Institution B counterparties showing they are bona‑fide business partners."
+  ],
+  "sanctions_referral": {
+    "needed": false,
+    "evidence": [],
+    "reason": "No strong watchlist match on the subject."
+  },
+  "limitations": [
+    "12 counterparties at Institution B cannot be screened – B’s governed view withholds names and DOB.",
+    "Follow‑money tracing limited to 72‑hour windows; longer‑term flow may reveal additional context.",
+    "Cycle detection relies on similar‑amount heuristics; exact‑match confirmation of the return leg was not independently verified.",
+    "12 counterparties at Institution B could not be screened by name: B's governed view (inst_b.kyc_b_shared) withholds names and dates of birth."
+  ],
+  "narrative": "Lyons & Rollins Partners (223:811A00890), a Saudi real‑estate partnership with a declared turnover of $18 M, moved $18.2 M outbound in ten days while receiving only $0.8 M inbound – a 22.6× pass‑through ratio. Network analysis uncovered a 4‑hop cycle that returns funds to the account (23,370 SAR out, 51,610 SAR back) within a week, together with two one‑off ACH inbound transfers and a subsequent layering step. Outflows project to $56 M/month, three times the declared turnover. No convergence, inter‑counterparty links, or uniform‑amount patterns were observed, and the sole high‑volume hub carries no value. Watchlist screening shows no match for the subject; counterparty name‑only hits are mismatched on DOB/country. Twelve Institution B counterparties remain unscreened. The combination of a returning money‑cycle, fan‑in, layering and extreme pass‑through constitutes a strong structural money‑laundering indicator, warranting escalation.",
+  "author": {
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "step": "report",
+    "latency_ms": 45438
+  },
+  "verification": {
+    "verified": 6,
+    "checked": 0,
+    "rejected": 1,
+    "total": 7
+  },
+  "model_disposition": "ESCALATE",
+  "measured": {
+    "disposition": "ESCALATE",
+    "typology": "CYCLE",
+    "score": 8,
+    "signals": [
+      "cycle 3/3",
+      "one_off_transfers 1/3",
+      "layered_transfers 1/3",
+      "pass_through 1/3",
+      "burst 1/3",
+      "turnover_vs_declared 1/3"
+    ]
+  },
+  "decision_basis": "The model's conclusion and the measured structure agree.",
+  "model_sanctions_referral": false,
+  "counterparty_watchlist": [],
+  "investigation": {
+    "steps": [
+      {
+        "step": 1,
+        "thought": "The analyze_network signal 'cycle' reports a 4-hop ring returning money to the subject with suspicious assessment and strength 3. This is a direct structural indicator of laundering (cycle typology). I need to verify the cycle details by examining the underlying transactions and counterparties involved, especially since 12 B counterparties are unscreenable and the cycle crosses institutions. I will check the specific accounts and transactions that form the ring.",
+        "action": "get_transactions",
+        "args": {
+          "bank_id": 1,
+          "account": "223:811A00890",
+          "direction": "both",
+          "counterparty": null,
+          "start": "2022-09-01 00:00",
+          "end": "2022-09-15 23:59",
+          "order_by": "time",
+          "limit": 100
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 11426,
+        "carryover_in": "",
+        "carryover_level": "marker",
+        "prompt_tokens": 11014,
+        "observation_step": 8,
+        "error": null
+      },
+      {
+        "step": 2,
+        "thought": "I need to verify the 4-hop cycle signal by tracing the exact transactions along the route 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890 and confirm the amounts and timing match the suspicious cycle signal.",
+        "action": "get_transactions",
+        "args": {
+          "bank_id": 1,
+          "account": "119:811B6E2B0",
+          "direction": "out",
+          "limit": 50
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 23045,
+        "carryover_in": "COMPLETED: profile_account, get_counterparties (out/in), follow_money out/in, screen_watchlist, analyze_network with 13 signals including cycle suspicious 3/3, one_off_transfers suspicious 1/3, layered_transfers suspicious 1/3, pass_through suspicious 1/3, burst suspicious 1/3, turnover_vs_declared suspicious 1/3, convergence context 0/3, interconnection context 0/3, uniform_amounts context 0/3, cross_institution context 0/3, hubs context 0/3, channels context 0/3, counterparty_mix context 0/3. REMAINING: Verify cycle details by tracing the 4-hop ring route and checking exact transactions. DECISIONS: So far the cycle signal is the most significant suspicious finding; need to confirm it is not a false positive from normal round-trip activity. CONTEXT: Cycle route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. Amounts: 23,370.22 SAR sent, 51,609.52 SAR received. All within 7d 3h.",
+        "carryover_level": "marker",
+        "prompt_tokens": 7757,
+        "observation_step": 9,
+        "error": null
+      },
+      {
+        "step": 3,
+        "thought": "I need to verify the 4-hop cycle route by tracing the exact transactions between the accounts in the ring: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. I'll check the outbound and inbound transactions for each hop to confirm the amounts and timing match the cycle signal.",
+        "action": "get_transactions",
+        "args": {
+          "bank_id": 1,
+          "account": "223:811A00890",
+          "direction": "out",
+          "counterparty": "119:811B6E2B0",
+          "start": "2022-09-01 00:00",
+          "end": "2022-09-11 23:59",
+          "order_by": "time",
+          "limit": 50
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 9469,
+        "carryover_in": "COMPLETED: profile_account, get_counterparties (out/in), follow_money out/in, screen_watchlist, analyze_network with 13 signals including cycle suspicious 3/3, one_off_transfers suspicious 1/3, layered_transfers suspicious 1/3, pass_through suspicious 1/3, burst suspicious 1/3, turnover_vs_declared suspicious 1/3, convergence context 0/3, interconnection context 0/3, uniform_amounts context 0/3, cross_institution context 0/3, hubs context 0/3, channels context 0/3, counterparty_mix context 0/3. REMAINING: Verify cycle details by tracing the 4-hop ring route and checking exact transactions. DECISIONS: So far the cycle signal is the most significant suspicious finding; need to confirm it is not a false positive from normal round-trip activity. CONTEXT: Cycle route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. Amounts: 23,370.22 SAR sent, 51,609.52 SAR received. All within 7d 3h.",
+        "carryover_level": "marker",
+        "prompt_tokens": 7738,
+        "observation_step": 10,
+        "error": null
+      },
+      {
+        "step": 4,
+        "thought": "I need to verify the cycle signal by tracing the 4-hop ring route and checking the exact transactions that form the loop. The cycle claim involves 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> back to 223:811A00890. I will query the transactions from each counterparty to confirm the amounts and timing match the suspicious signal.",
+        "action": "get_transactions",
+        "args": {
+          "bank_id": 1,
+          "account": "119:811B6E2B0",
+          "direction": "in",
+          "limit": 100
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 7432,
+        "carryover_in": "COMPLETED: profile_account, get_counterparties (out/in), follow_money out/in, screen_watchlist, analyze_network with 13 signals including cycle suspicious 3/3, one_off_transfers suspicious 1/3, layered_transfers suspicious 1/3, pass_through suspicious 1/3, burst suspicious 1/3, turnover_vs_declared suspicious 1/3, convergence context 0/3, interconnection context 0/3, uniform_amounts context 0/3, cross_institution context 0/3, hubs context 0/3, channels context 0/3, counterparty_mix context 0/3. REMAINING: Verify cycle details by tracing the 4-hop ring route and checking exact transactions. DECISIONS: So far the cycle signal is the most significant suspicious finding; need to confirm it is not a false positive from normal round-trip activity. CONTEXT: Cycle route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. Amounts: 23,370.22 SAR sent, 51,609.52 SAR received. All within 7d 3h.",
+        "carryover_level": "marker",
+        "prompt_tokens": 8372,
+        "observation_step": 11,
+        "error": null
+      },
+      {
+        "step": 5,
+        "thought": "I need to verify the cycle signal by tracing the exact transaction path of the 4-hop ring: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. I'll check the outbound transactions from 119:811B6E2B0 to 222:811D80C30 and subsequent hops to confirm the ring structure and amounts.",
+        "action": "get_transactions",
+        "args": {
+          "bank_id": 1,
+          "account": "119:811B6E2B0",
+          "direction": "out",
+          "counterparty": "222:811D80C30",
+          "start": "2022-09-01 00:00",
+          "end": "2022-09-30 23:59",
+          "order_by": "time",
+          "limit": 20
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 24690,
+        "carryover_in": "COMPLETED: profile_account, get_counterparties (out/in), follow_money out/in, screen_watchlist, analyze_network with 13 signals including cycle suspicious 3/3, one_off_transfers suspicious 1/3, layered_transfers suspicious 1/3, pass_through suspicious 1/3, burst suspicious 1/3, turnover_vs_declared suspicious 1/3, convergence context 0/3, interconnection context 0/3, uniform_amounts context 0/3, cross_institution context 0/3, hubs context 0/3, channels context 0/3, counterparty_mix context 0/3. REMAINING: Verify cycle details by tracing the 4-hop ring route and checking exact transactions. DECISIONS: So far the cycle signal is the most significant suspicious finding; need to confirm it is not a false positive from normal round-trip activity. CONTEXT: Cycle route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. Amounts: 23,370.22 SAR sent, 51,609.52 SAR received. All within 7d 3h.",
+        "carryover_level": "marker",
+        "prompt_tokens": 8446,
+        "observation_step": 12,
+        "error": null
+      },
+      {
+        "step": 6,
+        "thought": "I need to verify the cycle signal by examining the exact transactions along the 4-hop ring route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. I'll pull each transaction to confirm the amounts, currencies, and timing, and check whether this is a genuine round-trip or a false positive from normal activity.",
+        "action": "get_transactions",
+        "args": {
+          "bank_id": 1,
+          "account": "223:811A00890",
+          "direction": "out",
+          "counterparty": "119:811B6E2B0",
+          "start": "2022-09-01 00:00",
+          "end": "2022-09-15 23:59",
+          "order_by": "time",
+          "limit": 20
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 36395,
+        "carryover_in": "COMPLETED: profile_account, get_counterparties (out/in), follow_money out/in, screen_watchlist, analyze_network with 13 signals including cycle suspicious 3/3, one_off_transfers suspicious 1/3, layered_transfers suspicious 1/3, pass_through suspicious 1/3, burst suspicious 1/3, turnover_vs_declared suspicious 1/3, convergence context 0/3, interconnection context 0/3, uniform_amounts context 0/3, cross_institution context 0/3, hubs context 0/3, channels context 0/3, counterparty_mix context 0/3. REMAINING: Verify cycle details by tracing the 4-hop ring route and checking exact transactions. DECISIONS: So far the cycle signal is the most significant suspicious finding; need to confirm it is not a false positive from normal round-trip activity. CONTEXT: Cycle route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. Amounts: 23,370.22 SAR sent, 51,609.52 SAR received. All within 7d 3h.",
+        "carryover_level": "marker",
+        "prompt_tokens": 7374,
+        "observation_step": 13,
+        "error": null
+      },
+      {
+        "step": 7,
+        "thought": "I need to verify the cycle signal by tracing the 4-hop ring route and checking the exact transactions that form the loop. The cycle signal claims a 4-hop ring returns money to the subject, but I have only seen the first hop (subject -> 119:811B6E2B0). I must check the return path through 222:811D80C30 and 121:8000E1590 to confirm the ring is complete and not a false positive.",
+        "action": "get_transactions",
+        "args": {
+          "bank_id": 1,
+          "account": "119:811B6E2B0",
+          "direction": "out",
+          "counterparty": "222:811D80C30",
+          "start": "2022-09-01 00:00",
+          "end": "2022-09-11 23:59",
+          "order_by": "time",
+          "limit": 50
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 8744,
+        "carryover_in": "COMPLETED: profile_account, get_counterparties (out/in), follow_money out/in, screen_watchlist, analyze_network with 13 signals including cycle suspicious 3/3, one_off_transfers suspicious 1/3, layered_transfers suspicious 1/3, pass_through suspicious 1/3, burst suspicious 1/3, turnover_vs_declared suspicious 1/3, convergence context 0/3, interconnection context 0/3, uniform_amounts context 0/3, cross_institution context 0/3, hubs context 0/3, channels context 0/3, counterparty_mix context 0/3. REMAINING: Verify cycle details by tracing the 4-hop ring route and checking exact transactions. DECISIONS: So far the cycle signal is the most significant suspicious finding; need to confirm it is not a false positive from normal round-trip activity. CONTEXT: Cycle route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. Amounts: 23,370.22 SAR sent, 51,609.52 SAR received. All within 7d 3h.",
+        "carryover_level": "marker",
+        "prompt_tokens": 8373,
+        "observation_step": 14,
+        "error": null
+      },
+      {
+        "step": 8,
+        "thought": "I need to verify the cycle signal by checking the exact transactions along the 4-hop ring route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. The latest result gave one transaction from 119:811B6E2B0 to 222:811D80C30 for $9,513.28. I must now retrieve the other three transactions to confirm the ring structure and amounts.",
+        "action": "get_transactions",
+        "args": {
+          "bank_id": 1,
+          "account": "119:811B6E2B0",
+          "direction": "out",
+          "counterparty": "222:811D80C30",
+          "order_by": "time",
+          "limit": 10
+        },
+        "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "latency_ms": 13693,
+        "carryover_in": "COMPLETED: profile_account, get_counterparties (out/in), follow_money out/in, screen_watchlist, analyze_network with 13 signals including cycle suspicious 3/3, one_off_transfers suspicious 1/3, layered_transfers suspicious 1/3, pass_through suspicious 1/3, burst suspicious 1/3, turnover_vs_declared suspicious 1/3, convergence context 0/3, interconnection context 0/3, uniform_amounts context 0/3, cross_institution context 0/3, hubs context 0/3, channels context 0/3, counterparty_mix context 0/3. REMAINING: Verify cycle details by tracing the 4-hop ring route and checking exact transactions. DECISIONS: So far the cycle signal is the most significant suspicious finding; need to confirm it is not a false positive from normal round-trip activity. CONTEXT: Cycle route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. Amounts: 23,370.22 SAR sent, 51,609.52 SAR received. All within 7d 3h.",
+        "carryover_level": "marker",
+        "prompt_tokens": 7374,
+        "observation_step": 15,
+        "error": null
+      }
+    ],
+    "leaning": null,
+    "open_questions": [],
+    "engine": {
+      "engine": "markovian",
+      "run_id": "run-ecbc140aca79",
+      "status": "max-chunks",
+      "chunks": 8,
+      "chunk_config": {
+        "chunkSize": 4000,
+        "maxChunks": 8,
+        "carryoverTokens": 800,
+        "overlapTokens": 0
+      },
+      "token_label": "estimated",
+      "estimated_tokens_used": 695,
+      "estimated_tokens_saved": 0,
+      "estimated_efficiency_percent": 0.0,
+      "measured_prompt_tokens": [
+        11014,
+        7757,
+        7738,
+        8372,
+        8446,
+        7374,
+        8373,
+        7374
+      ],
+      "final_state": "COMPLETED: profile_account, get_counterparties (out/in), follow_money out/in, screen_watchlist, analyze_network with 13 signals including cycle suspicious 3/3, one_off_transfers suspicious 1/3, layered_transfers suspicious 1/3, pass_through suspicious 1/3, burst suspicious 1/3, turnover_vs_declared suspicious 1/3, convergence context 0/3, interconnection context 0/3, uniform_amounts context 0/3, cross_institution context 0/3, hubs context 0/3, channels context 0/3, counterparty_mix context 0/3. REMAINING: Verify cycle details by tracing the 4-hop ring route and checking exact transactions. DECISIONS: So far the cycle signal is the most significant suspicious finding; need to confirm it is not a false positive from normal round-trip activity. CONTEXT: Cycle route: 223:811A00890 -> 119:811B6E2B0 -> 222:811D80C30 -> 121:8000E1590 -> 223:811A00890. Amounts: 23,370.22 SAR sent, 51,609.52 SAR received. All within 7d 3h.",
+      "reflection": null,
+      "error": null
+    }
+  },
+  "timing": {
+    "seconds": 222.5,
+    "queries": 24,
+    "tool_calls": 15
+  },
+  "backend": "zetaris"
+}

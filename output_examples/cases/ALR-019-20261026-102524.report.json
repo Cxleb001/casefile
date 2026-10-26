@@ -1,0 +1,251 @@
+{
+  "disposition": "CLOSE",
+  "typology": "NONE",
+  "confidence": 0.88,
+  "headline": "Pass‑through and burst signals are present but no laundering structure (cycle, layering, convergence or fan‑out) is detected; the activity is consistent with a legitimate travel‑agency partnership.",
+  "claims": [
+    {
+      "id": "C1",
+      "kind": "fact",
+      "text": "Subject is Botella & Andrade Partners, a Spanish Partnership operating a travel agency, risk Medium, PEP false, declared monthly turnover $990,000.",
+      "evidence": [
+        "Q-25ed1b3cc7"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Customer record and profile summary confirm name, type, country, industry, risk, PEP status, and declared turnover."
+      }
+    },
+    {
+      "id": "C2",
+      "kind": "fact",
+      "text": "From 1‑10 Sep 2022 the account received 16 transactions from 5 counterparties totalling $268,776 and sent 41 transactions to 5 counterparties totalling $331,125.",
+      "evidence": [
+        "Q-08a547e0e1"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Activity summary (Q-08a547e0e1) shows exactly 16 inbound tx from 5 counterparties ($268,776) and 41 outbound tx to 5 counterparties ($331,125)."
+      }
+    },
+    {
+      "id": "C3",
+      "kind": "fact",
+      "text": "Largest outbound counterparty is 5466:810E31F10 (Institution B, Partnership, DE, Wholesale trade) with 4 transactions worth $230,904.",
+      "evidence": [
+        "Q-e20a5ac8c5"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Counterparty table (Q-e20a5ac8c5) lists 5466:810E31F10 with 4 transactions totalling $230,904; institution B, Partnership, DE, Wholesale trade matches claim."
+      }
+    },
+    {
+      "id": "C4",
+      "kind": "fact",
+      "text": "Largest inbound counterparty is 2591:8009B96F0 (Institution B, Sole Proprietorship, DE, Retail clothing) with 4 transactions worth $249,399.",
+      "evidence": [
+        "Q-1d0c7c71c0"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Inbound counterparty table (Q-1d0c7c71c0) shows 2591:8009B96F0 with 4 transactions totalling $249,399; institution B, Sole Proprietorship, DE, Retail clothing matches claim."
+      }
+    },
+    {
+      "id": "C5",
+      "kind": "fact",
+      "text": "Follow‑money out 2 hops: 41 transactions to 5 accounts (2 A, 3 B) then 50 transactions to 7 accounts (3 A, 4 B) totalling $174,532; 66 cross‑institution transactions; no returns to origin and no convergence.",
+      "evidence": [
+        "Q-0609b86cfb",
+        "Q-84dfc42c08",
+        "Q-eb120da5d0",
+        "Q-2f02f91866"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Follow‑money summary gives hop 1: 41 tx to 5 accounts (2 A, 3 B) $331,125; hop 2: 50 tx to 7 accounts (3 A, 4 B) $174,532; 66 cross‑institution; cycle and convergence signals are 0."
+      }
+    },
+    {
+      "id": "C6",
+      "kind": "fact",
+      "text": "Follow‑money in 2 hops: 16 transactions from 5 accounts (3 A, 2 B) then 26 transactions from 5 accounts (3 A, 2 B) totalling $4,417,198; 23 cross‑institution transactions; no returns to origin and no convergence.",
+      "evidence": [
+        "Q-d9c96e0a55",
+        "Q-986c36f5c0",
+        "Q-d21a5a6f71",
+        "Q-8ab06ef193"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Follow‑money in summary gives hop 1: 16 tx from 5 accounts (3 A, 2 B) $268,776; hop 2: 26 tx from 5 accounts (3 A, 2 B) $4,417,198; 23 cross‑institution; convergence signal 0."
+      }
+    },
+    {
+      "id": "C7",
+      "kind": "inference",
+      "text": "Network signals show pass‑through (out/in ratio 1.23, 122 % of inflows left within 72 h) and burst (8 distinct counterparties in the busiest 24 h vs. 1.1 average) as suspicious; all structural signals (cycle, layered_transfers, convergence, interconnection, uniform_amounts, hubs) are context (0).",
+      "evidence": [
+        "Q-0609b86cfb",
+        "Q-d9c96e0a55",
+        "Q-df9ebae2c3"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Analyze_network lists pass_through and burst as suspicious with the quoted values; all structural signals (cycle, layered_transfers, convergence, interconnection, uniform_amounts, hubs) are context (0)."
+      }
+    },
+    {
+      "id": "C8",
+      "kind": "fact",
+      "text": "Watchlist screening found no match for the subject; one counterparty (117660:8102C9370) matched name‑only to “Hamon Enterprises” with different DOB and country; 11 Institution B counterparties could not be screened because B withholds names.",
+      "evidence": [
+        "Q-ed7fe706d1",
+        "Q-992e9d8da9"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Screen_watchlist summary states no match for subject, one counterparty (117660:8102C9370) name‑only match to Hamon Enterprises, and 11 Institution B counterparties not screenable."
+      }
+    }
+  ],
+  "counter_evidence": [
+    {
+      "id": "X1",
+      "kind": "fact",
+      "text": "No cycle detected – no ring of similar‑sized payments through non‑hub accounts returns to the subject.",
+      "evidence": [
+        "Q-df9ebae2c3"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Cycle signal is context (0/3) with description “No ring…”, and query Q-df9ebae2c3 returns 0 rows."
+      }
+    },
+    {
+      "id": "X2",
+      "kind": "fact",
+      "text": "No layered transfers – none of the subject’s one‑off transfers is passed on (or funded) by another transfer within 72 h.",
+      "evidence": [
+        "Q-df9ebae2c3"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Layered_transfers signal is context (0/3) stating none of the subject’s one‑off transfers are passed on or funded within 72 h."
+      }
+    },
+    {
+      "id": "X3",
+      "kind": "fact",
+      "text": "No convergence – no non‑hub account collects from or funds several of the subject’s counterparties.",
+      "evidence": [
+        "Q-df9ebae2c3"
+      ],
+      "verdict": {
+        "status": "verified",
+        "layer": "model",
+        "model": "nvidia/nemotron-3-ultra-550b-a55b",
+        "reason": "Convergence signal is context (0/3) stating no non‑hub account collects from or funds several of the subject’s counterparties."
+      }
+    }
+  ],
+  "would_change_my_mind": [
+    "Evidence of a cycle returning funds to the subject account.",
+    "Layered transfers where outbound funds are quickly forwarded by counterparties within days.",
+    "Convergence of multiple counterparties onto a single downstream account.",
+    "A watchlist match on the subject itself."
+  ],
+  "sanctions_referral": {
+    "needed": false,
+    "evidence": [],
+    "reason": "No strong watchlist match on the subject."
+  },
+  "limitations": [
+    "11 counterparties at Institution B could not be screened by name because B’s governed view withholds names and dates of birth.",
+    "Investigation window limited to 10 days (1‑10 Sep 2022); longer‑term patterns are unknown.",
+    "Beneficial ownership of Institution B counterparties cannot be verified.",
+    "11 counterparties at Institution B could not be screened by name: B's governed view (inst_b.kyc_b_shared) withholds names and dates of birth."
+  ],
+  "narrative": "Botella & Andrade Partners (ES, travel agency) moved $268.8 k inbound and $331.1 k outbound over 1‑10 Sep 2022 across five counterparties each, with a modest out‑to‑in ratio of 1.23 and a burst of eight distinct counterparties in a single day. Two‑hop tracing shows outbound funds dispersed to seven downstream accounts ($174.5 k) and inbound funds originating from a much larger upstream pool ($4.4 M), but no funds returned to the subject, no layered forwarding, and no convergence of counterparties onto a single account. Watchlist screening found no match for the subject; a single counterparty produced a name‑only hit with mismatched identifiers. Given the absence of any structural laundering pattern (cycle, layering, fan‑out, convergence) the activity is consistent with normal travel‑agency cash‑flow and is closed.",
+  "author": {
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "step": "report",
+    "latency_ms": 28427
+  },
+  "verification": {
+    "verified": 8,
+    "checked": 0,
+    "rejected": 0,
+    "total": 8
+  },
+  "model_disposition": "CLOSE",
+  "measured": {
+    "disposition": "CLOSE",
+    "typology": "NONE",
+    "score": 2,
+    "signals": [
+      "pass_through 1/3",
+      "burst 1/3"
+    ]
+  },
+  "decision_basis": "The model's conclusion and the measured structure agree.",
+  "model_sanctions_referral": false,
+  "counterparty_watchlist": [],
+  "investigation": {
+    "steps": [
+      {
+        "step": 1,
+        "error": "planner reply unusable: planner reply was not a JSON object"
+      }
+    ],
+    "leaning": null,
+    "open_questions": [],
+    "engine": {
+      "engine": "markovian",
+      "run_id": "run-35adf882e8b7",
+      "status": "errored",
+      "chunks": 0,
+      "chunk_config": {
+        "chunkSize": 4000,
+        "maxChunks": 8,
+        "carryoverTokens": 800,
+        "overlapTokens": 0
+      },
+      "token_label": "estimated",
+      "estimated_tokens_used": 0,
+      "estimated_tokens_saved": 0,
+      "estimated_efficiency_percent": 0.0,
+      "measured_prompt_tokens": [],
+      "final_state": "",
+      "reflection": null,
+      "error": "planner reply was not a JSON object"
+    }
+  },
+  "timing": {
+    "seconds": 88.0,
+    "queries": 16,
+    "tool_calls": 7
+  },
+  "backend": "zetaris"
+}

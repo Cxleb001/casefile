@@ -1,289 +1,221 @@
 # Casefile
 
-**An AML investigator that follows the money across banks, and can show you why.**
+**An AML investigator that follows the money across banks, and shows you why it decided.**
 
-Casefile takes a transaction-monitoring alert, investigates it across two institutions' data through **Zetaris** (federated, governed, nothing copied), tests innocent explanations with **NVIDIA Nemotron**, and writes a suspicious-activity-report draft in which **every claim links to the exact query and rows behind it**. A verifier rejects any claim the evidence doesn't support before an analyst ever reads it.
+Casefile takes a transaction-monitoring alert from one bank, follows the money into a second bank through **Zetaris** (federated SQL; the partner bank's personal data stays behind a governed view), tests innocent explanations with **NVIDIA Nemotron** served through **Meterless Nightshift**, and writes a suspicious-activity-report (SAR) draft in which **every claim cites the exact query and rows behind it**. A verifier rejects any claim its evidence does not support before an analyst reads it.
 
-Open Agent Hackathon 2026 · Track 2: *The Agent That Can Explain Why*
+Open Agent Hackathon 2026 · Track 02: *The Agent That Can Explain Why*
+
+> **Try it in one minute, no keys:** `pip install -r requirements.txt -r requirements-ui.txt`, then `SAMPLE_MODE=true streamlit run app.py`. Sample mode runs the whole agent on a bundled slice of the real data and replays the model answers recorded from a real run ([sample/README.md](sample/README.md)).
 
 ---
 
-## Why this matters
+## The problem
 
-Money laundering crosses bank boundaries on purpose. Each bank sees only its own side of a transfer, so a ring of payments that leaves Bank A, passes through Bank B and comes back looks harmless from inside either bank. The UN estimates 2 to 5% of global GDP is laundered every year ([AMLworld paper](https://arxiv.org/abs/2306.16424)).
+Money laundering crosses bank boundaries on purpose. Each bank sees only its own side of a transfer, so money that leaves Bank A, passes through accounts at Bank B and comes back looks harmless from inside either bank. The UN puts laundering at 2 to 5% of global GDP each year ([AMLworld paper](https://arxiv.org/abs/2306.16424)), yet most monitoring alerts are false positives, and an analyst spends most of each one stitching systems together before writing up a decision that a reviewer has to take on trust.
 
-AML analysts spend most of each alert stitching systems together, then write up a decision that a reviewer has to trust. Casefile does the stitching through one federated query layer, and makes the write-up checkable line by line.
+**Who it is for:** AML analysts and their reviewers at banks that share data with partners under governance (consortia, correspondent banking, group entities in different jurisdictions).
 
-## What happens to one alert
+## What Casefile does with one alert
 
 ```mermaid
 flowchart LR
-    A[Alert from Bank A's monitoring] --> W[Standard workup<br/>profile, counterparties,<br/>2-hop trace both ways,<br/>ring closing, screening]
-    W --> P[Planner model<br/>tests innocent explanations<br/>with its own follow-up queries]
-    P --> R[Report model<br/>decision + SAR draft,<br/>every claim cites evidence ids]
-    R --> V[Verifier<br/>ids, accounts and numbers<br/>must be in the cited rows,<br/>then a model check]
-    V --> UI[Analyst view<br/>click any claim to see<br/>its SQL and rows]
-    W -.every query.-> E[(Evidence store<br/>SQL, rows, timing)]
-    P -.-> E
+    A[Alert from<br/>Bank A's monitoring] --> W[Standard workup<br/>profile, counterparties,<br/>2-hop trace both ways,<br/>ring closing, screening]
+    W --> P[Investigation<br/>Meterless Markovian engine<br/>Nemotron Lightning plans<br/>each bounded step]
+    P --> R[Decision + SAR draft<br/>Nemotron Ultra<br/>every claim cites evidence]
+    R --> V[Verifier<br/>deterministic check,<br/>then Nemotron Ultra]
+    V --> UI[Analyst view<br/>click a claim to see<br/>its SQL and rows]
+    W -. federated SQL .-> Z[(Zetaris<br/>Bank A · Bank B view · watchlist)]
+    P -. federated SQL .-> Z
+    Z -. every query kept .-> E[(Evidence store)]
     E -.-> V
 ```
 
-1. **Standard workup** (deterministic, same for every alert): customer record, who the account paid and was paid by, a time-ordered trace two hops out and two hops back across both banks, a "ring-closing" query that looks for payments linking where the money went to where it came from, watchlist screening, and typology signals (cycles, scatter-gather, interconnected counterparties, uniform amounts, pass-through, hubs).
-2. **Investigation**: the planner model reads the workup and asks its own questions: is this a payroll account, a merchant, the customer's own accounts, a hub? It calls the same tools and cannot repeat a call.
-3. **Decision and SAR draft**: ESCALATE or CLOSE, the typology, confidence, the evidence against, what would change the decision, a separate sanctions referral, and what could not be checked.
-4. **Verifier**: every claim must cite evidence that exists in this case; every account id, date and number in a factual claim must appear in that evidence; then a model checks support. Rejected claims stay visible, struck through, so the reader sees what was caught.
+1. **Standard workup** (deterministic, the same for every alert): the customer record; who the account paid and was paid by; a time-ordered trace two hops out and two hops back across both banks; a ring-closing query that looks for payments linking where the money went to where it came from; watchlist screening; and measured typology signals (cycles, layering, scatter-gather, pass-through, interconnected counterparties, uniform amounts, hubs).
+2. **Investigation on the Meterless Markovian engine.** The planner reads the workup and asks its own questions (a payroll account? a merchant? the customer's own accounts? a hub?) by calling the same federated tools. Each step is a bounded chunk with a compact carryover state, so the prompt stays flat however long the investigation runs. It cannot repeat a call.
+3. **Decision and SAR draft:** ESCALATE or CLOSE, the typology, confidence, the evidence against, what would change the decision, a separate sanctions referral, and what governance stopped it from checking.
+4. **Verifier:** every claim must cite evidence that exists in this case; every account id, date and number in a factual claim must appear in that evidence; then Nemotron reads each claim next to its evidence. Rejected claims stay visible, struck through.
+5. **Evidence standard:** the structure measured in the money decides the disposition. If the model leans the other way, the case is marked **NEEDS REVIEW** instead of either side silently winning.
 
-## Where the data lives
+The app shows each case in five tabs: **Findings** (claims with their verdicts, each opening its SQL and rows), **Money flow** (the pattern as a graph), **Investigation trace** (each Markovian step, its carryover and prompt size), **Evidence** (every query) and **SAR draft** (downloadable).
 
-| Data owner | What | Zetaris name | Local route | Cloud route |
-| --- | --- | --- | --- | --- |
-| Institution A (the analyst's bank) | Ledger | `inst_a.ledger_a` | Postgres `bank_a` | Postgres (Neon) |
-| Institution A | Customer records, full | `inst_a.kyc_a` | Postgres `bank_a` | Postgres (Neon) |
-| Institution B (partner bank) | Ledger | `inst_b.ledger_b` | Postgres `bank_b` | S3 Parquet |
-| Institution B | Customer records **without names, birth dates, ID numbers** | `inst_b.kyc_b_shared` (local) / `shared.kyc_b` (cloud) | governed datasource view | governed SchemaStore view |
-| Compliance | Synthetic watchlist | `compliance.watchlist` | Postgres `compliance` | S3 CSV |
+## How the sponsor technology is used
 
-**Governance is part of the answer.** Institution B shares customer records only through a view that drops PII, and the view runs inside B's database. Casefile never reads around it. When that stops a check (for example, B's customers can't be screened by name), the report says so under "What I could not check".
-
-Transactions come from IBM's **AMLworld** (synthetic, with complete laundering labels, NeurIPS 2023). Customer records and the watchlist are generated. There are no real people anywhere.
-
-## How the sponsor tech is used
-
-| Sponsor | Where it does real work |
+| | What it does in Casefile |
 | --- | --- |
-| **Zetaris** | The only path to data. Every tool sends Spark SQL that joins both banks' ledgers and customer records in one statement (for example `get_counterparties` joins 4 tables across 2 databases). Institution B's PII stays behind a datasource view. Every query is kept as evidence with its SQL and timing. |
-| **NVIDIA Nemotron** | A different model per step: `plan` runs the investigation and writes the report, `verify` checks claims, `fast` is available for extraction. Calls go through NVIDIA's API or **Meterless** Nightshift (both OpenAI-compatible). Every call's model and latency is logged. |
-| **Meterless** | Optional local router for Nemotron (`CASEFILE_LLM_PROVIDER=meterless`). |
-| **Cursor** | Used to build. |
+| **Zetaris** | The only path to data. Every tool is federated Spark SQL across Bank A's database, Bank B's database and a compliance store; `get_counterparties` joins both ledgers and both banks' customer records in one statement. Bank B shares customer records only through a view inside B's database that drops names, birth dates and ID numbers. Every query is kept with its SQL, rows and timing as evidence. |
+| **Meterless Markovian engine** | Runs the investigation in bounded steps with a `COMPLETED / REMAINING / DECISIONS / CONTEXT` carryover, tool calls as `[NEEDS_TOOL]` markers, a compression cascade and a reflection pass (`casefile/markovian/`). **Meterless's own conformance runner passes 8/8 against it.** |
+| **Meterless Nightshift** | The primary AI provider: every model call goes through it, following its provider contract (`meterless-app` and `meterless-scope` headers, token, status from `/v1/models`). `scripts/check_nightshift.py` checks it end to end. |
+| **NVIDIA Nemotron** | Through Nightshift (the NVIDIA key lives in Nightshift, not in this project): `nemotron-3.5-lightning-30b-a3b` plans each investigation step; `nemotron-3-ultra-550b-a55b` writes the decision and verifies every claim. Reasoning is switched per step. |
 
-All agent SQL was also run through a real **Spark SQL 3.5** engine (`scripts/dev/check_spark_sql.py`) and produced identical results to the local DuckDB stand-in, so it runs unchanged on Zetaris Lightning.
+Details, configuration and the tests that show each piece working: **[docs/SPONSORS.md](docs/SPONSORS.md)**.
 
 ## Results
 
-> Measured on held-out labels. Filled in after the real AMLworld HI-Small run (Saturday).
+Scored on 30 held-out alerts from IBM AMLworld (15 laundering, 15 hard negatives that trip the same rules), labels read only after each case. Thresholds and signals were tuned on a separate 64-alert batch. Before that batch existed, the model prompts were first calibrated on test alerts ALR-001 to ALR-005, so scores are also shown on the 25 alerts that were never looked at.
 
-| Run | Alerts | Accuracy | Precision | Recall | Typology hit | Sanctions referral | Claims rejected |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Rules only, single bank | 30 | | | | | | |
-| Rules only, federated | 30 | | | | | | |
-| Casefile (Nemotron), federated | 30 | | | | | | |
+| Run (30 alerts) | Accuracy | Precision | Recall | F1 | Typology named | Sanctions referral | Claims rejected | Time per case |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Casefile, both banks** (Zetaris + Nemotron via Nightshift) | 73% | 89% | 53% | 0.67 | 50% | 100% | 8% (18 of 239) | 141 s |
+| Casefile, Bank A only | 73% | 89% | 53% | 0.67 | 62% | 100% | 12% | 149 s |
+| Rules only, both banks | 73% | 89% | 53% | 0.67 | 50% | 100% | n/a | 8 s |
+| Rules only, Bank A only | 73% | 89% | 53% | 0.67 | 62% | 100% | n/a | 5 s |
 
-The single-bank row is the same agent with Institution B's data hidden: what Bank A could conclude on its own.
+| The model's own judgement, before the evidence standard | Accuracy | Precision | Recall | Cases sent to review |
+| --- | --- | --- | --- | --- |
+| Both banks | 73% | 89% | 53% | 0 |
+| Bank A only | 70% | 88% | 47% | 1 |
+
+On the 25 alerts that were never looked at (ALR-006 to ALR-030), every run scores 76% accuracy, 100% precision and 54% recall (F1 0.70).
+
+- **Rules only** is Casefile's measured structure with no model: the deterministic baseline.
+- **Bank A only** is the same agent with Institution B's ledger and customer view hidden: what Bank A could conclude alone.
+- **Typology named** is, among correctly escalated cases, how often the typology Casefile names is one of the laundering patterns actually present.
+- **Claims rejected** counts claims the verifier struck out. They stay visible in the report.
+
+**What the numbers say, plainly:**
+
+- **The decision follows the measured evidence.** Casefile's final decisions equal the deterministic baseline on all 30 alerts. That is by design: the structure measured in the money decides, and the model can only send a case to review when it disagrees. With both banks, Nemotron's own judgement agreed with the measured structure on every case. What the model adds is the investigation and the explanation: its own follow-up queries (17.8 queries per case on average), about 8 claims per case each tied to evidence, a SAR draft, and a verifier that struck out 18 of 239 claims.
+- **With Bank B hidden, the model made a mistake, and the guardrails caught it.** On ALR-012 it concluded that two legs of a ring did not exist and leaned CLOSE. The verifier rejected that claim, the measured ring still met the evidence standard, and the case was escalated for review (compare the two case files in [output_examples/cases/](output_examples/README.md)).
+- **Bank B changes the evidence, not the verdicts, on this test set.** In 28 of 30 cases the money keeps moving inside Bank B (561 transactions only Bank B can see), and 7 of the 9 escalations involve those movements; federation adds 19% more accounts and 12% more transactions to the traced graph. No decision changed, and naming the typology was better with Bank A alone (62% against 50%): Bank B's extra flows sometimes make a pattern look like a neighbouring typology (ALR-004 was named bipartite rather than cycle).
+- **What it misses.** 7 of the 15 laundering accounts are closed, mostly scatter-gather, stack and bipartite schemes whose other side falls outside the sampled data (each alert keeps only capped samples of its counterparties' activity). Precision is high: one false escalation in 30.
+- **Speed.** 141 seconds per case with both AI runs side by side on a 4-core Codespace: planning steps take a median 8.6 s (Nemotron Lightning), the report 43 s and the verifier 30 s (Nemotron Ultra), and most Zetaris queries under a second.
+
+Full logs, per-case results and all 433 model calls of both AI runs: [output_examples/](output_examples/README.md).
+
+## Where the data lives
+
+| Data owner | What | Zetaris name |
+| --- | --- | --- |
+| Institution A (the analyst's bank) | Ledger | `inst_a.ledger_a` |
+| Institution A | Customer records, complete | `inst_a.kyc_a` |
+| Institution B (partner bank) | Ledger | `inst_b.ledger_b` |
+| Institution B | Customer records **without names, birth dates or ID numbers** | `inst_b.kyc_b_shared` (a view inside B's database) |
+| Compliance | Synthetic watchlist | `compliance.watchlist` |
+
+Transactions come from IBM's **AMLworld** HI-Small (synthetic, with complete laundering labels; CDLA-Sharing-1.0). Customer records and the watchlist are generated. There are no real people anywhere. Source, licence, counts, registration and limitations: **[data/README.md](data/README.md)**.
 
 ---
 
-## Setup, step by step
+## Setup
 
-> **No Docker on your laptop, or only 8 GB of RAM?** Run everything in a free GitHub Codespace instead: **[docs/CODESPACE.md](docs/CODESPACE.md)** (10 numbered steps, all in the browser). The steps below are for running on your own machine.
-
-You need Python 3.10 or newer. Every command runs from the `casefile` folder. Do the steps in order; each one ends with a check.
-
-### Step 1. Install
+Python 3.10 or newer. Every command runs from the `casefile` folder.
 
 ```bash
 python -m venv .venv
-# Windows:  .venv\Scripts\activate
-# Mac:      source .venv/bin/activate
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
 pip install -r requirements.txt -r requirements-ui.txt
-copy .env.example .env      # Mac: cp .env.example .env
+cp .env.example .env                 # Windows: copy .env.example .env
 ```
 
-**Check:** your prompt starts with `(.venv)`. Activate it again in every new terminal.
-
-### Step 2. Try it on sample data (no keys, about 3 minutes)
+### 1. Sample mode: no Zetaris, no Nightshift, no keys
 
 ```bash
-python scripts/make_sample_data.py --out data/raw/sample
-python scripts/prepare_data.py --trans data/raw/sample/SAMPLE_Trans.csv --patterns data/raw/sample/SAMPLE_Patterns.txt --accounts data/raw/sample/SAMPLE_accounts.csv
-python scripts/check_setup.py --data
-python scripts/investigate.py ALR-009 --rules
-streamlit run app.py
+SAMPLE_MODE=true streamlit run app.py                  # the analyst view
+SAMPLE_MODE=true python scripts/run_eval.py            # score the sample alerts
 ```
 
-**Check:** `check_setup` ends with "All checks passed", and the app opens in your browser. The sample data is crude, so its decisions mean little. It only proves the pipeline runs.
+(PowerShell: `$env:SAMPLE_MODE="true"` first. Or set `SAMPLE_MODE=true` in `.env`.) Everything runs for real except the model, whose answers come from `sample/recordings/`; see [sample/README.md](sample/README.md).
 
-### Step 3. Get the real data (about 15 minutes)
+### 2. The full system
 
-1. Sign in to [Kaggle](https://www.kaggle.com) (free) and open [IBM Transactions for Anti Money Laundering](https://www.kaggle.com/datasets/ealtman2019/ibm-transactions-for-anti-money-laundering-aml).
-2. Download only `HI-Small_Trans.csv`, `HI-Small_Patterns.txt` and, if listed, `HI-Small_accounts.csv` into `data/raw/`.
-3. Close other heavy apps, then run (one line; drop `--accounts ...` if you have no accounts file):
+The full system needs Docker with about 8 GB of memory for Zetaris. The guided route runs it in a free GitHub Codespace, with Nightshift on your own computer:
+
+1. **Codespace, data and Zetaris:** [docs/CODESPACE.md](docs/CODESPACE.md), 10 numbered steps. Data download, preparation, loading and Zetaris registration are all scripted (`get_data.sh`, `prepare_data.py`, `publish_local.py load`, `zetaris_apply.py`).
+2. **Nightshift and NVIDIA:** [docs/NIGHTSHIFT.md](docs/NIGHTSHIFT.md). Install Nightshift on your computer, add your NVIDIA key inside it, open the one-line tunnel, then `python scripts/codespace/setup_env.py --nightshift` and `python scripts/check_nightshift.py`.
+3. **Check and run:**
 
 ```bash
-python scripts/prepare_data.py --trans data/raw/HI-Small_Trans.csv --patterns data/raw/HI-Small_Patterns.txt --accounts data/raw/HI-Small_accounts.csv
-python scripts/check_setup.py --data
+python scripts/check_setup.py                 # five tables through Zetaris and a federated three-way query
+python scripts/investigate.py ALR-004         # one case end to end in the terminal
+streamlit run app.py                          # the analyst view
 ```
 
-**Check:** "All checks passed". This replaces the sample files and the alert queue. It caps itself at 2 GB of memory.
+On your own machine instead of a Codespace: install Docker Desktop, start Zetaris with its bundle from the [Run locally page](https://cloud.enterprise.zetaris.com/dashboard/download), then run the same scripts (`infra/docker-compose.sources.yml` starts the sources database; `ZETARIS_PG_HOST=host.docker.internal`).
 
-### Step 4. Connect Nemotron (about 5 minutes)
+### Settings
 
-1. Create a key at [build.nvidia.com](https://build.nvidia.com/settings/api-keys).
-2. Put it in `.env` as `NVIDIA_API_KEY=...`. Never paste it into a chat or commit it.
-3. Run:
+All settings live in `.env` (see `.env.example`; it is gitignored, and keys are never committed).
 
-```bash
-python scripts/check_setup.py --models   # which Nemotron models your key can call
-python scripts/check_setup.py --model    # one reply
-python scripts/investigate.py ALR-001    # a full model-driven case
-```
+| Setting | Default | |
+| --- | --- | --- |
+| `SAMPLE_MODE` | `false` | bundled data and recorded answers |
+| `CASEFILE_DATA_BACKEND` | `local` | `zetaris` for live federation; `local` is a DuckDB stand-in with the same table names |
+| `CASEFILE_LLM_PROVIDER` | `meterless` | Nightshift; `nvidia` calls NVIDIA's API directly (development only) |
+| `METERLESS_BASE_URL`, `METERLESS_TOKEN` | `http://127.0.0.1:8088/v1` | Nightshift's address and proxy token |
+| `CASEFILE_MODEL_PLAN / REPORT / VERIFY` | Nemotron Lightning / Ultra / Ultra | any model id or Nightshift routing mode |
+| `CASEFILE_THINKING_PLAN / REPORT / VERIFY` | `off` / `medium` / `medium` | Nemotron reasoning per step |
+| `ZETARIS_ROUTE`, `ZETARIS_BASE_URL`, `ZETARIS_ORG_ID`, `ZETARIS_USERNAME`, `ZETARIS_PASSWORD` | | the Zetaris connection |
 
-**Check:** the case ends with a line like `=> ESCALATE (...) claims: 5 verified, 0 rejected`. If a model id isn't available, set `CASEFILE_MODEL_PLAN` / `CASEFILE_MODEL_VERIFY` in `.env` to ids from the list.
-
-To route through **Meterless** instead: install Nightshift, add your NVIDIA key inside it, then set `CASEFILE_LLM_PROVIDER=meterless`, `METERLESS_BASE_URL` and `METERLESS_TOKEN` in `.env`.
-
-### Step 5. Install Zetaris on your laptop (about 1 hour, mostly waiting)
-
-Zetaris recommends giving Docker 8 GB of memory; its installer refuses to start below 6 GB. On an 8 GB laptop, give Docker **6 GB** and close everything else while it runs. Don't run Step 3 at the same time.
-
-1. **Install Docker Desktop.** On Windows, enable WSL2 and run the Zetaris commands below from a WSL (Ubuntu) terminal.
-2. **Give Docker 6 GB.**
-   - Mac: Docker Desktop → Settings → Resources → Memory: 6 GB, CPUs: 4.
-   - Windows: create `C:\Users\<you>\.wslconfig` containing the two lines `[wsl2]` and `memory=6GB`, then run `wsl --shutdown` and restart Docker Desktop.
-3. **Get the bundle.** Sign in at [Zetaris Cloud](https://www.zetaris.com/cloud) (Start Free), open the [Run locally page](https://cloud.enterprise.zetaris.com/dashboard/download), download `zetaris-platform.zip` and note the registry sign-in command shown there.
-4. **Unpack and sign in to the registry:**
-
-```bash
-unzip zetaris-platform.zip && cd zetaris-platform
-docker login zetarishackathon.azurecr.io
-./preflight.sh
-```
-
-5. **Edit the bundle's `.env`** (keep everything else as supplied). These values come from Zetaris's own small-machine guide:
-
-| Setting | Value |
-| --- | --- |
-| `ZETARIS_ADMIN_EMAIL` | your email |
-| `ZETARIS_ADMIN_PASSWORD` | 8+ chars with lower, upper, digit and one of `$ @ ! % * ? &` |
-| `ZETARIS_ADMIN_ORG` | `casefile` |
-| `ZSPARK_DRIVER_MEM` | `2g` |
-| `ZSPARK_DRIVER_CORES` | `2` |
-| `ZSPARK_MASTER_URL` | `local[2]` |
-| `ZETARIS_API_MAX_HEAP` | `1g` |
-| `UI_PORT` / `GUI_URL` / `ALLOWED_ORIGINS` | `3000` / `http://localhost:3000` / `http://localhost:3000` |
-
-6. **Start it:**
-
-```bash
-docker compose pull
-docker compose up -d
-./verify.sh
-```
-
-**Check:** `verify.sh` passes its checks, and <http://localhost:3000> lets you sign in. In the SQL Editor, `SELECT 1 AS one;` returns 1. Stuck? Post your OS, the command and the error in Zetaris's HackOS Help desk, or see their [troubleshooting guide](https://zetaris.github.io/getting-started/docs/guides/troubleshooting.html).
-
-### Step 6. Put the data where Zetaris federates over it
-
-1. **Start the sources database** (one small Postgres, capped at 256 MB, with three databases: `bank_a`, `bank_b`, `compliance`):
-
-```bash
-docker compose -f infra/docker-compose.sources.yml up -d
-python scripts/publish_local.py check
-```
-
-2. **Load the prepared data:**
-
-```bash
-python scripts/publish_local.py load --yes
-```
-
-3. **Register it in Zetaris.** Print the SQL, then paste and run it **one statement at a time** in the Zetaris SQL Editor. Type the password (`casefile-local` unless you changed it) where it says `<LOCAL_PG_PASSWORD>`:
-
-```bash
-python scripts/publish_local.py sql
-```
-
-4. **Point Casefile at Zetaris.** In `.env` set:
-
-```
-CASEFILE_DATA_BACKEND=zetaris
-ZETARIS_ROUTE=proxy
-ZETARIS_BASE_URL=http://localhost:3000
-ZETARIS_ORG_ID=<the number under Management -> Organisation -> ID>
-ZETARIS_USERNAME=<your admin email>
-ZETARIS_PASSWORD=<your admin password>
-CASEFILE_TABLE_KYC_B=inst_b.kyc_b_shared
-```
-
-5. **Run the gate:**
-
-```bash
-python scripts/check_setup.py
-```
-
-**Check:** five tables show row counts, and the federated query (A's ledger × B's ledger × B's governed view) returns rows. If parsing looks wrong, `python scripts/check_setup.py --raw` prints Zetaris's raw response.
-
-### Step 7. Use it
-
-```bash
-streamlit run app.py
-```
-
-Pick an alert, press **Investigate**, watch the steps stream in, then open any claim to see its SQL and rows. The **Money flow** tab draws the pattern behind the decision; **SAR draft** downloads the report.
-
-### Step 8. Measure it
-
-```bash
-python scripts/run_eval.py --rules --single-bank   # what Bank A alone could conclude
-python scripts/run_eval.py --rules                 # federated, no model
-python scripts/run_eval.py                         # the full agent
-```
-
-Each run prints a Markdown results table and saves `runs/eval/<name>/results.json`.
-
----
-
-## Commands
+## Usage
 
 | Command | What it does |
 | --- | --- |
-| `python scripts/check_setup.py [--data / --model / --models / --raw]` | Gate checks for data and models |
-| `python scripts/investigate.py ALR-009 [--rules] [--steps N]` | One case end to end; writes `runs/cases/<id>.json`, `.report.json`, `.sar.md` |
-| `python scripts/investigate.py --all --rules` | Every alert |
-| `python scripts/run_eval.py [--rules] [--single-bank] [--limit N]` | Score against hidden labels |
-| `streamlit run app.py` | The analyst view |
-| `python scripts/publish_local.py check / load --yes / sql` | Local sources for Zetaris |
-| `python scripts/publish_sources.py postgres / s3 / sql` | Cloud route (Neon + S3) |
-| `pytest` | 19 tests, including a hand-built world with a known ring |
+| `streamlit run app.py` | The analyst view: pick an alert, **Investigate**, open any claim |
+| `python scripts/investigate.py ALR-004 [--rules] [--steps N]` | One case in the terminal; writes `runs/cases/<id>.json`, `.report.json`, `.sar.md` |
+| `python scripts/run_eval.py [--rules] [--single-bank] [--limit N] [--name X]` | Score against the hidden labels; writes `runs/eval/<name>/` with results, cases, evidence and model recordings |
+| `python scripts/check_setup.py [--data / --model / --raw]` | Gate checks for data, Zetaris and models |
+| `python scripts/check_nightshift.py [--model ID]` | Find Nightshift, check the token, list models, send one test chat |
+| `python scripts/build_sample.py --run runs/eval/<name> --alerts ...` | Rebuild `sample/` from a recorded run, with its self-checks |
+| `bash scripts/conformance/run_meterless_conformance.sh` | Meterless's own Markovian conformance suite against Casefile's engine |
+| `pip install pytest && pytest` | 59 tests: a hand-built world with a known ring, tools, signals, guardrails, Zetaris auth, the Markovian engine and conformance, record-and-replay, the bundled sample |
+
+**Sample inputs and outputs:** [input_examples/](input_examples/) holds alerts as the agent receives them; [output_examples/](output_examples/) holds the case files, SAR drafts, evaluation results and model-call logs they produced.
+
+## Dependencies
+
+- **Python packages** (`requirements.txt`, `requirements-ui.txt`): pandas, DuckDB, PyArrow, Faker, the OpenAI client (for Nightshift's OpenAI-compatible API), python-dotenv, psycopg, boto3, Streamlit.
+- **Zetaris** (Docker) for live federation; **Meterless Nightshift** with an NVIDIA key for live models. Neither is needed in sample mode.
+- **Node 18+** only to run Meterless's TypeScript conformance runner.
 
 ## Project layout
 
 ```
-app.py                          Streamlit analyst view
+app.py                       Streamlit analyst view
 casefile/
-  config.py                     settings from .env
-  llm.py                        one OpenAI-compatible client, model per step (NVIDIA or Meterless)
-  evidence.py                   every query, model call and claim (runs/casefile.duckdb)
-  ui_helpers.py                 money-flow graph for the app
-  data/                         QueryResult, Zetaris HTTP backend, DuckDB stand-in, shared column layouts
+  config.py                  settings from .env, sample mode
+  llm.py                     one OpenAI-compatible client, model per step (Nightshift or NVIDIA)
+  replay.py                  records every model call per case; replays them without a key
+  evidence.py                every query, model call and claim (DuckDB)
+  data/                      Zetaris HTTP backend, DuckDB stand-in, shared column layouts
+  markovian/                 the Meterless Markovian engine in Python (Apache-2.0 spec, see NOTICE.md)
   agent/
-    tools.py                    the agent's tools: federated SQL, recorded as evidence
-    analysis.py                 typology signals from the traced money graph
-    workup.py                   the standard checks every alert gets
-    investigator.py             planner loop (JSON actions, no repeats)
-    report.py                   decision + SAR draft (model, or rules-only fallback)
-    verifier.py                 deterministic + model claim checks
-    pipeline.py                 one alert in, one verified case file out
-    prompts.py, case.py, sqlutil.py, fx.py
-scripts/                        data prep, setup checks, publishing, investigate, eval
-scripts/zetaris/                registration SQL (local and cloud routes)
-infra/                          the local sources container
-tests/                          pytest
+    tools.py                 federated tools, each query recorded as evidence
+    workup.py                the standard checks every alert gets
+    analysis.py              measured typology signals
+    investigator.py          the investigation on the Markovian engine
+    report.py                decision, SAR draft, evidence and screening standards
+    verifier.py              deterministic + model claim checks
+    pipeline.py              one alert in, one verified case file out
+sample/                      bundled data slice + recorded answers for SAMPLE_MODE
+scripts/                     data prep, Zetaris setup, Nightshift check, investigate, eval, sample builder
+docs/                        CODESPACE.md, NIGHTSHIFT.md, SPONSORS.md
+data/README.md               the dataset: source, licence, counts, registration
+eval/alerts.csv              the 30 test alerts (labels are never committed)
+tests/                       pytest
 ```
 
 ## How the evaluation stays honest
 
-- The laundering flag never reaches a source the agent can read. It exists only in `eval/labels.csv`, which is read by `run_eval.py` after each case finishes.
-- Alerts come from four simple monitoring rules (fan-out, fan-in, pass-through, currency churn), applied the same way to every account. Half the alerts are laundering accounts; half are "hard negatives" that trip the same rules.
-- The transactions kept around each alert are chosen the same way for both kinds of alert, so data volume gives nothing away.
-- Customer attributes and planted watchlist hits are random and label-blind. Some innocent customers have name-only watchlist matches, as in real screening.
-- `prepare_data.py` is deterministic: the same inputs and `--seed` give identical files.
+- The laundering flag never reaches anything the agent can read. It lives only in `eval/labels.csv` (not committed), read by `run_eval.py` after each case finishes.
+- Alerts come from four simple monitoring rules applied the same way to every account. Half the test alerts are laundering accounts; half are hard negatives that trip the same rules.
+- The data kept around each alert is chosen the same way for both kinds, so data volume gives nothing away. Customer attributes and planted watchlist hits are random and label-blind.
+- Tuning used a separate 64-alert batch; alerts sharing an account with the test set were removed from it. The first five test alerts were used to calibrate prompts early on, so results are also reported without them.
+- `prepare_data.py` is deterministic, and every model call of every scored run is recorded, so the numbers above can be reproduced and inspected call by call.
 
 ## Limitations
 
+- AMLworld is synthetic. Its typologies are realistic, but real payment mixes differ and the signal thresholds would need recalibrating on a bank's own data.
 - Customer records and the watchlist are synthetic, so declared turnover and watchlist hits carry no laundering signal by design.
-- Signals are tuned on AMLworld. Real banks have different payment mixes, and thresholds would need recalibration.
-- Over Zetaris, an alert takes longer than on the local stand-in (Spark plans each federated query). Caching Institution B's ledger in Zetaris helps.
+- 30 test alerts give wide confidence intervals: one case moves accuracy by 3.3 points.
+- The deterministic checker is strict and occasionally rejects a correct claim (on ALR-012 it did not recognise the date range "1‑Sep‑2022 to 11‑Sep‑2022"). Rejected claims stay visible, struck through, so an analyst can overrule it.
+- Through Zetaris and a remote model, a case takes about two and a half minutes; a production deployment would cache the partner's ledger and batch the workup queries.
+- Two institutions only. Real investigations span many banks and payment rails.
+
+## Built during the hackathon
+
+Everything here was written during the hackathon (first commit 23 October 2026); there are no pre-existing components. Built by Caleb ([@Cxleb001](https://github.com/Cxleb001)) with AI coding assistance (Claude). Third-party work used: the Markovian engine specification and conformance suite by Meterless (Apache-2.0, see `casefile/markovian/NOTICE.md`), Zetaris's getting-started guides, and IBM's AMLworld data (CDLA-Sharing-1.0).
 
 ## Credits
 
-IBM AMLworld data (Altman et al., NeurIPS 2023 Datasets and Benchmarks; Community Data License Agreement) · Zetaris [getting-started](https://github.com/zetaris/getting-started) guides · NVIDIA Nemotron · Meterless.
+IBM AMLworld (Altman et al., NeurIPS 2023 Datasets and Benchmarks) · Zetaris · Meterless · NVIDIA Nemotron.

@@ -1,0 +1,8 @@
+alert_id,is_suspicious,pattern_types,attempt_ids,laundering_tx_count,watchlist_alert_match,watchlist_counterparty,watchlist_counterparty_match
+ALR-002,0,,,0,none,,none
+ALR-004,1,CYCLE|FAN-IN|FAN-OUT|GATHER-SCATTER|RANDOM|SCATTER-GATHER|STACK,100|103|112|13|130|141|17|214|222|243|259|277|289|3|313|362|45|52|68|81,34,name_only,,none
+ALR-007,1,SCATTER-GATHER,269,2,none,2947:808645930,fuzzy
+ALR-012,1,BIPARTITE|FAN-OUT,173|216|254,3,none,119:811B6E2B0,name_only
+ALR-019,0,,,0,none,117660:8102C9370,name_only
+ALR-022,1,GATHER-SCATTER,49,28,none,213005:804B9FA50,exact
+ALR-030,1,GATHER-SCATTER,215,21,none,,none
