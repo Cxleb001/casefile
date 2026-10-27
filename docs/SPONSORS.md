@@ -49,11 +49,13 @@ Casefile is an anti-money-laundering investigator. It takes an alert from Instit
 **How Casefile connects.** `casefile/llm.py` follows Meterless's provider contract:
 
 - `CASEFILE_LLM_PROVIDER=meterless`, base URL `http://127.0.0.1:8088/v1` (any pasted form is normalised to `<host>/v1`), and the bearer token from Nightshift's `proxy-token` file in `METERLESS_TOKEN`.
-- Every request sends `meterless-app: casefile`; chat requests add `meterless-scope: user`.
+- Every request sends a `meterless-app` id (`casefile` for status checks, `casefile-<case>-<n>` for each model call, so each call is its own conversation; see below); chat requests add `meterless-scope: user`.
 - `python scripts/check_nightshift.py` auto-detects the runtime (ports 8088, 8090, 8787, 11434), decides the status from `GET /v1/models` (online, unauthorized or offline), lists the routing modes and models, and sends one test chat, printing which model served it.
 - In a Codespace, a one-line SSH tunnel from the laptop (`gh codespace ssh -c <name> -- -N -R 8088:127.0.0.1:8088`) makes the laptop's Nightshift appear at `127.0.0.1:8088`; see [NIGHTSHIFT.md](NIGHTSHIFT.md).
 
 **Routing.** Casefile pins each step to a model id that Nightshift serves (below) rather than a routing mode, because a step's job decides the model: many short planning steps need speed, the decision and its check need depth. Nightshift's routing modes (`meterless/auto`, `meterless/text.deep` …) also work by changing one line in `.env`.
+
+**Isolation, and what the logs caught.** The recordings let us audit what the models saw. In the scored runs every request shared one Nightshift conversation id, `casefile`, and the planner sometimes answered with content it was never sent: 78 of 234 planner steps took up the verifier's task ("evaluate claims C1–C8, X1–X3"), and 18 replies named accounts that only other cases' prompts contained. Earlier runs against NVIDIA's API directly showed none of this in 495 steps. The report and verifier steps were clean and no final claim was affected, but 8 of 60 investigations stopped early. Casefile now gives every call its own conversation id (`casefile-<case>-<n>`; `CASEFILE_NIGHTSHIFT_ISOLATION=case|app` for coarser ids), records the id with the call, and `scripts/check_contamination.py` counts both tell-tales in any run. `scripts/probe_nightshift_isolation.py` is the two-request probe we used.
 
 **Logs.** Every call is logged with the step, the provider and the model Nightshift reports as having served it, latency and tokens: in the evidence store (`llm_calls`), in each run's `results.json`, and as a full request-and-answer record in `runs/eval/<run>/llm/<case>.jsonl`. Those recordings are also what sample mode replays without a key.
 
