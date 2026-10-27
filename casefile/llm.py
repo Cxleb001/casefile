@@ -69,6 +69,7 @@ class LLM:
         )
         self.on_call = on_call
         self._no_thinking_control: set[str] = set()  # models that rejected chat_template_kwargs
+        self._calls_per_case: dict[str, int] = {}
         # Every request and answer is kept in runs/llm/<case_id>.jsonl: the trace behind each decision,
         # and what sample mode replays without a key. CASEFILE_RECORD_LLM=false turns it off.
         recording = os.environ.get("CASEFILE_RECORD_LLM", "true").strip().lower() not in {"0", "false", "no", "off"}
@@ -93,6 +94,24 @@ class LLM:
         if level == "medium":
             return {"enable_thinking": True, "medium_effort": True}
         return {"enable_thinking": True}
+
+    def nightshift_app(self, case_id: str | None) -> str:
+        """The meterless-app id for one call.
+
+        Nightshift keeps one open conversation per app id. With every request sharing "casefile", recorded
+        runs showed the planner seeing other cases' accounts and the verifier's task, which it was never sent.
+        So by default each call gets its own id (casefile-<case>-<n>): no request can see another's content,
+        and the Markovian engine's bounded prompt is really all the model sees.
+        CASEFILE_NIGHTSHIFT_ISOLATION=case shares one id per case; =app restores the single "casefile" id.
+        """
+        mode = os.environ.get("CASEFILE_NIGHTSHIFT_ISOLATION", "call").strip().lower()
+        if mode == "app" or not case_id:
+            return "casefile"
+        slug = re.sub(r"[^a-z0-9]+", "-", case_id.lower()).strip("-")
+        if mode == "case":
+            return f"casefile-{slug}"
+        self._calls_per_case[case_id] = self._calls_per_case.get(case_id, 0) + 1
+        return f"casefile-{slug}-{self._calls_per_case[case_id]}"
 
     def list_models(self) -> list[str]:
         return sorted(m.id for m in self.client.models.list().data)
@@ -126,8 +145,10 @@ class LLM:
             body["chat_template_kwargs"] = template
         if body:
             kwargs["extra_body"] = body
+        app = None
         if self.settings.llm_provider == "meterless":
-            kwargs["extra_headers"] = {"meterless-scope": "user"}
+            app = self.nightshift_app(case_id)
+            kwargs["extra_headers"] = {"meterless-scope": "user", "meterless-app": app}
 
         started = time.perf_counter()
         try:
@@ -146,7 +167,8 @@ class LLM:
         except Exception as error:  # surface the provider's own message
             message = f"{self.settings.llm_provider} call for step '{step}' ({model}) failed: {error}"
             if self.record_dir:
-                record_call(self.record_dir, case_id, messages, None, {"temperature": temperature, "max_tokens": max_tokens},
+                record_call(self.record_dir, case_id, messages, None,
+                            {"temperature": temperature, "max_tokens": max_tokens, "meterless_app": app},
                             step=step, provider=self.settings.llm_provider, model=model, error=message)
             raise LLMError(message) from error
         latency_ms = int((time.perf_counter() - started) * 1000)
@@ -192,7 +214,7 @@ class LLM:
         if self.record_dir:
             record_call(self.record_dir, case_id, messages, result,
                         {"temperature": temperature, "max_tokens": max_tokens,
-                         "chat_template_kwargs": body.get("chat_template_kwargs")})
+                         "chat_template_kwargs": body.get("chat_template_kwargs"), "meterless_app": app})
         if self.on_call:
             self.on_call(result, case_id)
         return result
