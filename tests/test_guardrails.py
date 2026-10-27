@@ -6,7 +6,10 @@ import re
 from dataclasses import dataclass, replace
 from types import SimpleNamespace
 
-import httpx
+try:  # openai 3.x is built on httpx2; older versions on httpx
+    import httpx2 as httpx
+except ImportError:
+    import httpx
 import openai
 import pytest
 
