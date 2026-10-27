@@ -159,7 +159,7 @@ All settings live in `.env` (see `.env.example`; it is gitignored, and keys are 
 | `python scripts/check_nightshift.py [--model ID]` | Find Nightshift, check the token, list models, send one test chat |
 | `python scripts/build_sample.py --run runs/eval/<name> --alerts ...` | Rebuild `sample/` from a recorded run, with its self-checks |
 | `bash scripts/conformance/run_meterless_conformance.sh` | Meterless's own Markovian conformance suite against Casefile's engine |
-| `pip install pytest && pytest` | 66 tests: a hand-built world with a known ring, tools, signals, guardrails, Zetaris auth, the Markovian engine and conformance, record-and-replay, the bundled sample, the analyst view's helpers |
+| `pip install pytest && pytest` | 68 tests: a hand-built world with a known ring, tools, signals, guardrails, Zetaris auth, the Markovian engine and conformance, record-and-replay, the bundled sample, the analyst view's helpers, Nightshift call isolation |
 
 **Sample inputs and outputs:** [input_examples/](input_examples/) holds alerts as the agent receives them; [output_examples/](output_examples/) holds the case files, SAR drafts, evaluation results and model-call logs they produced.
 
