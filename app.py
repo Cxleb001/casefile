@@ -31,7 +31,7 @@ st.markdown(
 <style>
 :root { --ink:#18263A; --muted:#5B6B7F; --rule:#D5DCE5; --surface:#FFFFFF;
         --bank-a:#1D4ED8; --bank-b:#C2410C; --bank-b-tint:#FCEDE2; --esc:#B42318; --close:#17663F; --review:#8A5A00; }
-.block-container { padding-top: 1.2rem; max-width: 1320px; }
+.block-container { padding-top: 4rem; max-width: 1320px; }  /* clear of Streamlit's top bar, so nothing sits under it */
 [data-testid="stSidebar"] .cf-wordmark { font-family: 'Source Serif 4', Georgia, serif; font-size: 2rem !important;
                font-weight: 700; line-height: 1.1; margin: 0 0 4px; color: var(--ink); }
 .cf-lede { color: var(--muted); font-size: .92rem; line-height: 1.45; margin: 2px 0 10px; }
@@ -239,7 +239,7 @@ if not case_id:
     calls = {alert_id: (load_analyst(cid) or {}).get("label", "") for alert_id, cid in latest.items()}
     frame = pd.DataFrame(inbox_rows(alerts, reports, calls))
     event = st.dataframe(
-        frame, hide_index=True, width="stretch", height=min(38 + 35 * len(frame), 760),
+        frame, hide_index=True, width="stretch", height=min(40 + 35 * len(frame), 1400),  # the whole queue, no inner scroll
         on_select="rerun", selection_mode=["single-row", "single-cell"], key=f"inbox-{state.get('inbox_key', 0)}",
         column_config={"Alert": st.column_config.TextColumn(width=80),
                        "Account": st.column_config.TextColumn(width=150),
@@ -450,7 +450,13 @@ with tab_flow:
                       for s in case.get("signals", []))
     if has_pattern:
         st.markdown("#### The pattern behind the decision")
-        st.graphviz_chart(flow_dot(case, max_direct=0), width="stretch")
+        graph, why = st.columns([3, 2], gap="large")  # the graph at a size that fits one screen
+        graph.graphviz_chart(flow_dot(case, max_direct=0), width="stretch")
+        with why:
+            st.markdown("**Signals behind it**")
+            for sig in case.get("signals", []):
+                if sig["assessment"] == "suspicious" and sig["strength"] >= 2:
+                    st.markdown(f"- **{sig['name'].replace('_', ' ')}** ({sig['strength']}/3): {md(sig['finding'])}")
         with st.expander("The subject's largest direct flows"):
             st.graphviz_chart(flow_dot(case, max_direct=12, include_flagged=False), width="stretch")
     else:
